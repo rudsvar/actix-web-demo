@@ -1,3 +1,5 @@
+use std::net::TcpListener;
+
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
 #[actix_web::get("/health_check")]
@@ -11,14 +13,14 @@ pub async fn greet(req: HttpRequest) -> impl Responder {
     format!("Hello {}!", &name)
 }
 
-pub fn run() -> std::io::Result<Server> {
+pub fn run(listener: TcpListener) -> std::io::Result<Server> {
     let server = HttpServer::new(|| {
         App::new()
             .service(health_check)
             .route("/hello/", web::get().to(greet))
             .route("/hello/{name}", web::get().to(greet))
     })
-    .bind("127.0.0.1:8080")?
+    .listen(listener)?
     .run();
     Ok(server)
 }
