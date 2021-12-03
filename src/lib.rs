@@ -10,8 +10,8 @@ pub async fn health_check() -> impl Responder {
 
 #[derive(Debug, Deserialize)]
 pub struct FormData {
-    name: String,
     email: String,
+    name: String,
 }
 
 #[actix_web::post("/subscriptions")]
