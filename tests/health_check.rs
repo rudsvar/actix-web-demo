@@ -1,9 +1,10 @@
+use actix_web_demo::startup::run;
 use std::net::TcpListener;
 
 fn spawn_app() -> String {
     let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port();
-    let server = actix_web_demo::run(listener).expect("failed to start server");
+    let server = run(listener).expect("failed to start server");
     let _ = tokio::spawn(server);
     format!("http://127.0.0.1:{}", port)
 }
