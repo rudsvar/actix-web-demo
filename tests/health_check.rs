@@ -1,4 +1,5 @@
-use actix_web_demo::startup::run;
+use actix_http::StatusCode;
+use actix_web_demo::{routes::ClientContext, startup::run};
 use std::net::TcpListener;
 
 fn spawn_app() -> String {
@@ -23,7 +24,7 @@ async fn health_check_works() {
         .expect("failed to execute request");
 
     // Assert
-    assert!(response.status().is_success());
+    assert_eq!(StatusCode::OK, response.status());
     assert_eq!(Some(0), response.content_length());
 }
 
@@ -42,7 +43,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .await
         .expect("Failed to execute request.");
     // Assert
-    assert_eq!(200, response.status().as_u16());
+    assert_eq!(StatusCode::OK, response.status());
 }
 
 #[actix_rt::test]
@@ -66,11 +67,30 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             .expect("Failed to execute request.");
         // Assert
         assert_eq!(
-            400,
-            response.status().as_u16(),
+            StatusCode::BAD_REQUEST,
+            response.status(),
             // Additional customised error message on test failure
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message
         );
     }
+}
+
+#[actix_rt::test]
+async fn client_context_success() {
+    let addr = spawn_app();
+    let client = reqwest::Client::new();
+    let response = client
+        .get(format!("{}/client_context", addr))
+        .header("user_id", "5")
+        .header("user_name", "frodo")
+        .header("token", "qwerty12345")
+        .send()
+        .await
+        .expect("request failed");
+    assert_eq!(StatusCode::OK, response.status());
+    assert_eq!(
+        ClientContext::new(5, "frodo", "qwerty12345"),
+        response.json().await.unwrap()
+    );
 }
