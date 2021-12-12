@@ -23,10 +23,6 @@ jobs:
         toolchain: nightly
     - uses: Swatinem/rust-cache@v1
 
-    # Build
-    - name: Build
-      run: cargo build --verbose
-
     # Start database
     - name: Start PostgreSQL on Ubuntu
       run: |
@@ -35,6 +31,10 @@ jobs:
     - name: Set password
       run: |
         sudo -u postgres psql --command="ALTER USER postgres PASSWORD 'password'"
+
+    # Build
+    - name: Build
+      run: cargo build --verbose
 
     # Test
     - name: Run tests
