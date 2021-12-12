@@ -15,13 +15,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Setup
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: nightly
     - uses: Swatinem/rust-cache@v1
+
+    # Build
     - name: Build
       run: cargo build --verbose
+
+    # Start database
+    - name: Start PostgreSQL on Ubuntu
+      run: |
+        sudo systemctl start postgresql.service
+        pg_isready
+    - name: Set password
+      run: |
+        sudo -u postgres psql --command="ALTER USER postgres PASSWORD 'password'"
+
+    # Test
     - name: Run tests
       run: cargo test --verbose

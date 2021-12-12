@@ -1,18 +1,13 @@
 use crate::routes::{client_context, health_check, subscribe};
 use actix_web::{dev::Server, web, App, HttpServer};
-use r2d2_sqlite::SqliteConnectionManager;
+use sqlx::PgPool;
 use std::net::TcpListener;
 
-pub type DbPool = r2d2::Pool<SqliteConnectionManager>;
-
-pub fn run(listener: TcpListener) -> std::io::Result<Server> {
-    let manager = SqliteConnectionManager::memory();
-    let db_pool = DbPool::builder()
-        .build(manager)
-        .expect("could not initialize db");
+pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
+    let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
         App::new()
-            .app_data(db_pool.clone())
+            .app_data(pool.clone())
             .service(health_check)
             .service(subscribe)
             .route("/client_context", web::get().to(client_context))
