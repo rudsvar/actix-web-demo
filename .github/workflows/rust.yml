@@ -31,6 +31,10 @@ jobs:
     - name: Set password
       run: |
         sudo -u postgres psql --command="ALTER USER postgres PASSWORD 'password'"
+    - name: Create newsletter database
+      run: |
+        sudo -u postgres createdb --owner=postgres newsletter
+        PGPASSWORD=password psql --username=postgres --host=localhost --list newsletter
 
     # Build
     - name: Build
