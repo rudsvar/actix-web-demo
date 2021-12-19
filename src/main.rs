@@ -1,4 +1,4 @@
-use actix_web_demo::{configuration::get_configuration, startup::run};
+use actix_web_demo::{configuration::get_configuration, startup};
 use sqlx::{migrate::Migrator, PgPool};
 use std::net::TcpListener;
 
@@ -25,5 +25,5 @@ async fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind(address)?;
 
     // Start application
-    run(listener, db_pool)?.await
+    startup::run(listener, db_pool)?.await
 }

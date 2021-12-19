@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:12
+        image: postgres:14
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
+          POSTGRES_DB: newsletter
         ports:
           - 5432:5432
     env:
@@ -67,9 +67,7 @@ jobs:
             --locked
 
       - name: Migrate database
-        run: |
-          sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+        run: sqlx migrate run
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
