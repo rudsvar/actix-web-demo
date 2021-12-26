@@ -2,6 +2,7 @@ use actix_web::{web, HttpResponse};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tracing::Instrument;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -57,11 +58,32 @@ impl FormData {
 }
 
 #[actix_web::post("/subscriptions")]
-pub async fn subscribe(pool: web::Data<PgPool>, form: web::Form<NewFormData>) -> HttpResponse {
+pub async fn post_subscription(
+    pool: web::Data<PgPool>,
+    form: web::Form<NewFormData>,
+) -> HttpResponse {
+    let request_id = Uuid::new_v4();
+    let request_span = tracing::info_span!(
+        "Adding new subscriber",
+        %request_id,
+        subscriber_email = %form.email,
+        subscriber_name = %form.name);
+    let _request_span_guard = request_span.enter();
+
     let query_result = insert_subscription(pool.get_ref(), form.into_inner()).await;
     match query_result {
-        Ok(data) => HttpResponse::Created().json(data),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Ok(data) => {
+            tracing::info!("Successfully saved subscriber");
+            HttpResponse::Created().json(data)
+        }
+        Err(sqlx::Error::Database(e)) => {
+            tracing::error!("Database error: {}", e);
+            HttpResponse::Conflict().body(e.to_string())
+        }
+        Err(e) => {
+            tracing::error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }
 
@@ -92,6 +114,7 @@ pub async fn insert_subscription(
     pool: &PgPool,
     form: NewFormData,
 ) -> Result<FormData, sqlx::Error> {
+    let query_span = tracing::info_span!("Saving new subscriber details in database");
     sqlx::query_as!(
         FormData,
         r#"
@@ -105,6 +128,7 @@ pub async fn insert_subscription(
         Utc::now()
     )
     .fetch_one(pool)
+    .instrument(query_span)
     .await
 }
 

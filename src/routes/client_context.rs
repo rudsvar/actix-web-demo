@@ -89,6 +89,6 @@ impl FromRequest for ClientContext {
 }
 
 pub async fn client_context(cc: ClientContext) -> impl Responder {
-    log::info!("Got request from {:?}", cc);
+    tracing::info!("Got request from {:?}", cc);
     web::Json(cc)
 }

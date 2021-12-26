@@ -6,8 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = { version = "=4.0.0-beta.13" }
-actix-http = { version = "=3.0.0-beta.14" }
+actix-web = { version = "=4.0.0-beta.15" }
+actix-http = { version = "=3.0.0-beta.16" }
 tokio = "1.14.0"
 serde = "1.0.130"
 config = "0.11.0"
@@ -16,8 +16,12 @@ r2d2_postgres = "0.18.1"
 uuid = { version =  "0.8.2", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 
-log = "0.4.14"
-env_logger = "0.9.0"
+tracing = { version = "0.1.19", features = ["log"] }
+tracing-futures = "0.2.4"
+tracing-subscriber = { version = "0.3.4", features = ["registry", "env-filter"] }
+tracing-bunyan-formatter = "0.3.1"
+tracing-log = "0.1.2"
+# tracing-actix-web = "0.5.0-beta.6"
 
 [dependencies.sqlx]
 version = "0.5.9"
