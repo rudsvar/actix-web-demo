@@ -1,7 +1,7 @@
 use actix_http::StatusCode;
 use actix_web_demo::{
     configuration::{get_configuration, DatabaseSettings},
-    routes::ClientContext,
+    routes::{ClientContext, NewFormData},
     startup::run,
 };
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -71,7 +71,7 @@ async fn health_check_works() {
 }
 
 #[actix_rt::test]
-async fn subscribe_returns_a_200_for_valid_form_data() {
+async fn subscribe_returns_a_201_for_valid_form_data() {
     // Arrange
     let app = spawn_app().await;
     let client = reqwest::Client::new();
@@ -85,7 +85,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .await
         .expect("Failed to execute request.");
     // Assert
-    assert_eq!(StatusCode::OK, response.status());
+    assert_eq!(StatusCode::CREATED, response.status());
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
         .fetch_one(&app.db_pool)
@@ -151,4 +151,45 @@ async fn can_connect_to_db() {
     let _ = PgConnection::connect(&connection_string)
         .await
         .expect("failed to connect");
+}
+
+#[actix_rt::test]
+async fn subscription_db_operations() {
+    let mut configuration = get_configuration().expect("could not read configuration");
+    configuration.database.database_name = Uuid::new_v4().to_string();
+    let pool = configure_database(&configuration.database).await;
+
+    // Insert
+    let form = NewFormData::new("foo@example.com", "foo");
+    let inserted_form = actix_web_demo::routes::insert_subscription(&pool, form)
+        .await
+        .unwrap();
+    assert_eq!("foo@example.com", inserted_form.email());
+    assert_eq!("foo", inserted_form.name());
+
+    // Fetch all
+    let subscriptions = actix_web_demo::routes::fetch_all_subscriptions(&pool)
+        .await
+        .unwrap();
+    assert_eq!(1, subscriptions.len());
+    let form = &subscriptions[0];
+    assert_eq!("foo@example.com", form.email());
+    assert_eq!("foo", form.name());
+
+    // Update
+    let new_form = NewFormData::new("bar@example.com", "bar");
+    let updated_form = actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), new_form).await.unwrap();
+    assert_ne!(inserted_form.email(), updated_form.email());
+    assert_ne!(inserted_form.name(), updated_form.name());
+    assert_eq!(inserted_form.id(), updated_form.id());
+    assert_eq!(inserted_form.subscribed_at(), updated_form.subscribed_at());
+
+    // Fetch all
+    let subscriptions = actix_web_demo::routes::fetch_all_subscriptions(&pool)
+        .await
+        .unwrap();
+    assert_eq!(1, subscriptions.len());
+    let form = &subscriptions[0];
+    assert_eq!("bar@example.com", form.email());
+    assert_eq!("bar", form.name());
 }
