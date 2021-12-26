@@ -71,8 +71,7 @@ pub async fn put_subscription(
     id: web::Path<Uuid>,
     form: web::Form<NewFormData>,
 ) -> HttpResponse {
-    let query_result =
-        update_subscription(pool.get_ref(), &id, form.into_inner()).await;
+    let query_result = update_subscription(pool.get_ref(), &id, form.into_inner()).await;
     match query_result {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -93,7 +92,8 @@ pub async fn insert_subscription(
     pool: &PgPool,
     form: NewFormData,
 ) -> Result<FormData, sqlx::Error> {
-    sqlx::query_as!(FormData,
+    sqlx::query_as!(
+        FormData,
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)

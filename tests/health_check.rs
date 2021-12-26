@@ -178,7 +178,10 @@ async fn subscription_db_operations() {
 
     // Update
     let new_form = NewFormData::new("bar@example.com", "bar");
-    let updated_form = actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), new_form).await.unwrap();
+    let updated_form =
+        actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), new_form)
+            .await
+            .unwrap();
     assert_ne!(inserted_form.email(), updated_form.email());
     assert_ne!(inserted_form.name(), updated_form.name());
     assert_eq!(inserted_form.id(), updated_form.id());
