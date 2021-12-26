@@ -60,7 +60,7 @@ impl FormData {
 pub async fn subscribe(pool: web::Data<PgPool>, form: web::Form<NewFormData>) -> HttpResponse {
     let query_result = insert_subscription(pool.get_ref(), form.into_inner()).await;
     match query_result {
-        Ok(_) => HttpResponse::Created().finish(),
+        Ok(data) => HttpResponse::Created().json(data),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
@@ -82,7 +82,7 @@ pub async fn put_subscription(
 pub async fn list_subscriptions(pool: web::Data<PgPool>) -> HttpResponse {
     let query_result = fetch_all_subscriptions(pool.get_ref()).await;
     match query_result {
-        Ok(posts) => HttpResponse::Ok().json(web::Json(posts)),
+        Ok(posts) => HttpResponse::Ok().json(posts),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
