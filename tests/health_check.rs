@@ -3,10 +3,19 @@ use actix_web_demo::{
     configuration::{get_configuration, DatabaseSettings},
     routes::{ClientContext, NewFormData},
     startup::run,
+    telemetry,
 };
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let subscriber_name = "test".to_string();
+    let default_filter_level = "info".to_string();
+    let subscriber = telemetry::get_subscriber(subscriber_name, default_filter_level);
+    telemetry::init_subscriber(subscriber);
+});
 
 pub struct TestApp {
     pub address: String,
@@ -15,15 +24,16 @@ pub struct TestApp {
 
 // Spawn an application used for testing
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
+
     let mut configuration = get_configuration().expect("Failed to read configuration.");
     configuration.database.database_name = Uuid::new_v4().to_string();
-    configure_database(&configuration.database).await;
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres.");
+    let connection_pool = configure_database(&configuration.database).await;
+
     let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);
     TestApp {
@@ -161,7 +171,7 @@ async fn subscription_db_operations() {
 
     // Insert
     let form = NewFormData::new("foo@example.com", "foo");
-    let inserted_form = actix_web_demo::routes::insert_subscription(&pool, form)
+    let inserted_form = actix_web_demo::routes::insert_subscription(&pool, &form)
         .await
         .unwrap();
     assert_eq!("foo@example.com", inserted_form.email());
@@ -179,7 +189,7 @@ async fn subscription_db_operations() {
     // Update
     let new_form = NewFormData::new("bar@example.com", "bar");
     let updated_form =
-        actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), new_form)
+        actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), &new_form)
             .await
             .unwrap();
     assert_ne!(inserted_form.email(), updated_form.email());

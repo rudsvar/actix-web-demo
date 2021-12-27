@@ -1,11 +1,11 @@
 use actix_web::{web, HttpResponse};
 use chrono::{DateTime, Utc};
+use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tracing::Instrument;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Getters)]
 pub struct NewFormData {
     email: String,
     name: String,
@@ -18,15 +18,9 @@ impl NewFormData {
             name: name.into(),
         }
     }
-    pub fn email(&self) -> &str {
-        &self.email
-    }
-    pub fn name(&self) -> &str {
-        &self.name
-    }
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq, sqlx::FromRow)]
+#[derive(Debug, Serialize, PartialEq, Eq, sqlx::FromRow, Getters)]
 pub struct FormData {
     id: Uuid,
     email: String,
@@ -35,55 +29,38 @@ pub struct FormData {
 }
 
 impl FormData {
-    pub fn new(id: Uuid, email: String, name: String, subscribed_at: DateTime<Utc>) -> Self {
+    pub fn new(
+        id: Uuid,
+        email: impl Into<String>,
+        name: impl Into<String>,
+        subscribed_at: DateTime<Utc>,
+    ) -> Self {
         Self {
             id,
-            email,
-            name,
+            email: email.into(),
+            name: name.into(),
             subscribed_at,
         }
     }
-    pub fn id(&self) -> &Uuid {
-        &self.id
-    }
-    pub fn email(&self) -> &str {
-        &self.email
-    }
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    pub fn subscribed_at(&self) -> &DateTime<Utc> {
-        return &self.subscribed_at;
-    }
 }
 
+#[tracing::instrument(
+    name = "Adding a new subscriber",
+    skip(form, pool),
+    fields(
+        subscriber_email = %form.email,
+        subscriber_name= %form.name
+        )
+    )]
 #[actix_web::post("/subscriptions")]
 pub async fn post_subscription(
     pool: web::Data<PgPool>,
     form: web::Form<NewFormData>,
 ) -> HttpResponse {
-    let request_id = Uuid::new_v4();
-    let request_span = tracing::info_span!(
-        "Adding new subscriber",
-        %request_id,
-        subscriber_email = %form.email,
-        subscriber_name = %form.name);
-    let _request_span_guard = request_span.enter();
-
-    let query_result = insert_subscription(pool.get_ref(), form.into_inner()).await;
-    match query_result {
-        Ok(data) => {
-            tracing::info!("Successfully saved subscriber");
-            HttpResponse::Created().json(data)
-        }
-        Err(sqlx::Error::Database(e)) => {
-            tracing::error!("Database error: {}", e);
-            HttpResponse::Conflict().body(e.to_string())
-        }
-        Err(e) => {
-            tracing::error!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        }
+    let insert_result = insert_subscription(pool.get_ref(), &form).await;
+    match insert_result {
+        Ok(data) => HttpResponse::Created().json(data),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
@@ -93,8 +70,8 @@ pub async fn put_subscription(
     id: web::Path<Uuid>,
     form: web::Form<NewFormData>,
 ) -> HttpResponse {
-    let query_result = update_subscription(pool.get_ref(), &id, form.into_inner()).await;
-    match query_result {
+    let update_result = update_subscription(pool.get_ref(), &id, &form).await;
+    match update_result {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -110,11 +87,11 @@ pub async fn list_subscriptions(pool: web::Data<PgPool>) -> HttpResponse {
 }
 
 /// Inserts a subscription into the database.
+#[tracing::instrument(name = "Saving new subscriber to the database", skip(pool, form))]
 pub async fn insert_subscription(
     pool: &PgPool,
-    form: NewFormData,
+    form: &NewFormData,
 ) -> Result<FormData, sqlx::Error> {
-    let query_span = tracing::info_span!("Saving new subscriber details in database");
     sqlx::query_as!(
         FormData,
         r#"
@@ -128,15 +105,18 @@ pub async fn insert_subscription(
         Utc::now()
     )
     .fetch_one(pool)
-    .instrument(query_span)
     .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {}", e);
+        e
+    })
 }
 
 /// Updates a subscription in the database.
 pub async fn update_subscription(
     pool: &PgPool,
     id: &Uuid,
-    form: NewFormData,
+    form: &NewFormData,
 ) -> Result<FormData, sqlx::Error> {
     sqlx::query_as!(
         FormData,
