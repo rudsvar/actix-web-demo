@@ -44,6 +44,7 @@ impl FormData {
     }
 }
 
+#[allow(clippy::async_yields_async)]
 #[tracing::instrument(
     name = "Adding a new subscriber",
     skip(form, pool),
