@@ -1,7 +1,8 @@
 use actix_http::StatusCode;
 use actix_web_demo::{
     configuration::{get_configuration, DatabaseSettings},
-    routes::{ClientContext, NewFormData},
+    model::subscription::NewSubscription,
+    routes::ClientContext,
     startup::run,
     telemetry,
 };
@@ -170,39 +171,39 @@ async fn subscription_db_operations() {
     let pool = configure_database(&configuration.database).await;
 
     // Insert
-    let form = NewFormData::new("foo@example.com", "foo");
-    let inserted_form = actix_web_demo::routes::insert_subscription(&pool, &form)
+    let form = NewSubscription::new("foo@example.com", "foo");
+    let inserted_form = actix_web_demo::db::subscription::insert_subscription(&pool, &form)
         .await
         .unwrap();
-    assert_eq!("foo@example.com", inserted_form.email());
-    assert_eq!("foo", inserted_form.name());
+    assert_eq!("foo@example.com", inserted_form.email);
+    assert_eq!("foo", inserted_form.name);
 
     // Fetch all
-    let subscriptions = actix_web_demo::routes::fetch_all_subscriptions(&pool)
+    let subscriptions = actix_web_demo::db::subscription::fetch_all_subscriptions(&pool)
         .await
         .unwrap();
     assert_eq!(1, subscriptions.len());
     let form = &subscriptions[0];
-    assert_eq!("foo@example.com", form.email());
-    assert_eq!("foo", form.name());
+    assert_eq!("foo@example.com", form.email);
+    assert_eq!("foo", form.name);
 
     // Update
-    let new_form = NewFormData::new("bar@example.com", "bar");
+    let new_form = NewSubscription::new("bar@example.com", "bar");
     let updated_form =
-        actix_web_demo::routes::update_subscription(&pool, inserted_form.id(), &new_form)
+        actix_web_demo::db::subscription::update_subscription(&pool, &inserted_form.id, &new_form)
             .await
             .unwrap();
-    assert_ne!(inserted_form.email(), updated_form.email());
-    assert_ne!(inserted_form.name(), updated_form.name());
-    assert_eq!(inserted_form.id(), updated_form.id());
-    assert_eq!(inserted_form.subscribed_at(), updated_form.subscribed_at());
+    assert_ne!(inserted_form.email, updated_form.email);
+    assert_ne!(inserted_form.name, updated_form.name);
+    assert_eq!(inserted_form.id, updated_form.id);
+    assert_eq!(inserted_form.subscribed_at, updated_form.subscribed_at);
 
     // Fetch all
-    let subscriptions = actix_web_demo::routes::fetch_all_subscriptions(&pool)
+    let subscriptions = actix_web_demo::db::subscription::fetch_all_subscriptions(&pool)
         .await
         .unwrap();
     assert_eq!(1, subscriptions.len());
     let form = &subscriptions[0];
-    assert_eq!("bar@example.com", form.email());
-    assert_eq!("bar", form.name());
+    assert_eq!("bar@example.com", form.email);
+    assert_eq!("bar", form.name);
 }

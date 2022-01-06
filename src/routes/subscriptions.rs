@@ -1,48 +1,11 @@
 use actix_web::{web, HttpResponse};
-use chrono::{DateTime, Utc};
-use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Getters)]
-pub struct NewFormData {
-    email: String,
-    name: String,
-}
-
-impl NewFormData {
-    pub fn new(email: impl Into<String>, name: impl Into<String>) -> Self {
-        Self {
-            email: email.into(),
-            name: name.into(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq, sqlx::FromRow, Getters)]
-pub struct FormData {
-    id: Uuid,
-    email: String,
-    name: String,
-    subscribed_at: DateTime<Utc>,
-}
-
-impl FormData {
-    pub fn new(
-        id: Uuid,
-        email: impl Into<String>,
-        name: impl Into<String>,
-        subscribed_at: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            id,
-            email: email.into(),
-            name: name.into(),
-            subscribed_at,
-        }
-    }
-}
+use crate::{
+    db::subscription::{fetch_all_subscriptions, insert_subscription, update_subscription},
+    model::subscription::NewSubscription,
+};
 
 #[allow(clippy::async_yields_async)]
 #[tracing::instrument(
@@ -56,7 +19,7 @@ impl FormData {
 #[actix_web::post("/subscriptions")]
 pub async fn post_subscription(
     pool: web::Data<PgPool>,
-    form: web::Form<NewFormData>,
+    form: web::Form<NewSubscription>,
 ) -> HttpResponse {
     let insert_result = insert_subscription(pool.get_ref(), &form).await;
     match insert_result {
@@ -69,7 +32,7 @@ pub async fn post_subscription(
 pub async fn put_subscription(
     pool: web::Data<PgPool>,
     id: web::Path<Uuid>,
-    form: web::Form<NewFormData>,
+    form: web::Form<NewSubscription>,
 ) -> HttpResponse {
     let update_result = update_subscription(pool.get_ref(), &id, &form).await;
     match update_result {
@@ -85,58 +48,4 @@ pub async fn list_subscriptions(pool: web::Data<PgPool>) -> HttpResponse {
         Ok(posts) => HttpResponse::Ok().json(posts),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
-}
-
-/// Inserts a subscription into the database.
-#[tracing::instrument(name = "Saving new subscriber to the database", skip(pool, form))]
-pub async fn insert_subscription(
-    pool: &PgPool,
-    form: &NewFormData,
-) -> Result<FormData, sqlx::Error> {
-    sqlx::query_as!(
-        FormData,
-        r#"
-        INSERT INTO subscriptions (id, email, name, subscribed_at)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, email, name, subscribed_at
-        "#,
-        Uuid::new_v4(),
-        form.email,
-        form.name,
-        Utc::now()
-    )
-    .fetch_one(pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {}", e);
-        e
-    })
-}
-
-/// Updates a subscription in the database.
-pub async fn update_subscription(
-    pool: &PgPool,
-    id: &Uuid,
-    form: &NewFormData,
-) -> Result<FormData, sqlx::Error> {
-    sqlx::query_as!(
-        FormData,
-        r#"
-        UPDATE subscriptions SET email = $1, name = $2
-        WHERE id = $3
-        RETURNING id, email, name, subscribed_at
-        "#,
-        form.email,
-        form.name,
-        id
-    )
-    .fetch_one(pool)
-    .await
-}
-
-/// Fetches all subscriptions from the database.
-pub async fn fetch_all_subscriptions(pool: &PgPool) -> Result<Vec<FormData>, sqlx::Error> {
-    sqlx::query_as!(FormData, r#"SELECT * FROM subscriptions"#)
-        .fetch_all(pool)
-        .await
 }
