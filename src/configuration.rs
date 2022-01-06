@@ -1,18 +1,30 @@
-#[derive(serde:: Deserialize)]
+//! Structs and functions for reading application configuration from a file.
+
+/// Application settings.
+#[derive(Debug, serde:: Deserialize)]
 pub struct Settings {
+    /// The database settings.
     pub database: DatabaseSettings,
+    /// The application port.
     pub application_port: u16,
 }
 
-#[derive(serde:: Deserialize)]
+/// Database settings.
+#[derive(Debug, serde:: Deserialize)]
 pub struct DatabaseSettings {
+    /// The database username.
     pub username: String,
+    /// The database password.
     pub password: String,
+    /// The database port.
     pub port: u16,
+    /// The database host.
     pub host: String,
+    /// The database name.
     pub database_name: String,
 }
 
+/// Retrieve [`Settings`] from the default configuration file.
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     // Initialise our configuration reader
     let mut settings = config::Config::default();
@@ -26,12 +38,14 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 }
 
 impl DatabaseSettings {
+    /// Constructs a connection string from the [`DatabaseSettings`].
     pub fn connection_string(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             self.username, self.password, self.host, self.port, self.database_name
         )
     }
+    /// Constructs a connection string from the [`DatabaseSettings`], but without a specific database.
     pub fn connection_string_without_db(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}",

@@ -1,3 +1,5 @@
+//! Middleware for appending headers to responses.
+
 use actix_http::header::{HeaderName, HeaderValue};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::{
@@ -5,6 +7,8 @@ use futures::{
     FutureExt,
 };
 
+/// A service for appending headers to responses.
+#[derive(Debug)]
 pub struct ResponseAppenderService<S> {
     service: S,
 }
@@ -34,6 +38,8 @@ where
     }
 }
 
+/// Middleware for appending headers to responses.
+#[derive(Clone, Copy, Debug)]
 pub struct ResponseAppender;
 
 impl<S, B> Transform<S, ServiceRequest> for ResponseAppender

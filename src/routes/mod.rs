@@ -1,3 +1,5 @@
+//! Routes or endpoints for the services of the application.
+
 mod client_context;
 mod health_check;
 mod subscriptions;

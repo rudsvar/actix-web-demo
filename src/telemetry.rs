@@ -1,3 +1,5 @@
+//! Telemetry setup.
+
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
@@ -16,7 +18,7 @@ pub fn get_subscriber(name: String, env_filter: String) -> impl Subscriber + Sen
         .with(formatting_layer)
 }
 
-/// Initializes the logger `LogTracer`, and sets the global subscriber.
+/// Initializes the logger [`LogTracer`], and sets the global subscriber.
 /// This should only be called once.
 pub fn init_subscriber(subscriber: impl Subscriber + Send + Sync) {
     LogTracer::init().expect("failed to set logger");

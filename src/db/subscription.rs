@@ -1,3 +1,5 @@
+//! Functions for storing and retrieving subscriptions from a database.
+
 use crate::model::subscription::{NewSubscription, Subscription};
 use chrono::Utc;
 use sqlx::PgPool;

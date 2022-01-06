@@ -1,3 +1,6 @@
+//! A type for representing meta-information in from a request.
+//! Used to identify a user and where the request came from.
+
 use actix_http::{header::HeaderMap, StatusCode};
 use actix_web::{error::InternalError, web, Error, FromRequest, Responder};
 use serde::{Deserialize, Serialize};
@@ -54,6 +57,7 @@ where
     Ok(parsed)
 }
 
+/// Meta-information about a request.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientContext {
     user_id: usize,
@@ -62,6 +66,7 @@ pub struct ClientContext {
 }
 
 impl ClientContext {
+    /// Constructs a new [`ClientContext`].
     pub fn new(user_id: usize, user_name: impl Into<String>, token: impl Into<String>) -> Self {
         Self {
             user_id,
@@ -88,6 +93,7 @@ impl FromRequest for ClientContext {
     }
 }
 
+/// Constructs a [`ClientContext`] from a request, logs it, and responds with it.
 pub async fn client_context(cc: ClientContext) -> impl Responder {
     tracing::info!("Got request from {:?}", cc);
     web::Json(cc)

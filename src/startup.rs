@@ -1,3 +1,5 @@
+//! A function for starting a server.
+
 use crate::middleware;
 use crate::routes::{
     client_context, health_check, list_subscriptions, post_subscription, put_subscription,
@@ -7,6 +9,7 @@ use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
+/// Starts a [`Server`].
 pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
