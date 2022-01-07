@@ -9,7 +9,6 @@ use crate::{
 
 #[allow(clippy::async_yields_async)]
 #[tracing::instrument(
-    name = "Adding a new subscriber",
     skip(form, pool),
     fields(
         subscriber_email = %form.email,

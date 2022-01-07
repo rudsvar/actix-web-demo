@@ -94,6 +94,7 @@ impl FromRequest for ClientContext {
 }
 
 /// Constructs a [`ClientContext`] from a request, logs it, and responds with it.
+#[actix_web::get("/client_context")]
 pub async fn client_context(cc: ClientContext) -> impl Responder {
     tracing::info!("Got request from {:?}", cc);
     web::Json(cc)

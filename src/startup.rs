@@ -29,7 +29,7 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
                     .service(list_subscriptions),
             )
             // Other
-            .route("/client_context", web::get().to(client_context))
+            .service(client_context)
     })
     .listen(listener)?
     .run();
