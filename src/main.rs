@@ -6,7 +6,8 @@ static MIGRATOR: Migrator = sqlx::migrate!();
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let subscriber = telemetry::get_subscriber("actix-web-demo".into(), "info".into());
+    let subscriber =
+        telemetry::get_subscriber("actix-web-demo".into(), "info".into(), std::io::stdout);
     telemetry::init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("could not read configuration");
