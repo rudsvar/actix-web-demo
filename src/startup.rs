@@ -2,7 +2,7 @@
 
 use crate::middleware;
 use crate::routes::{
-    client_context, health_check, list_subscriptions, post_subscription, put_subscription,
+    client_context::client_context, health_check::health_check, subscription::*, user::*,
 };
 use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::PgPool;
@@ -26,7 +26,10 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
                 web::scope("/api")
                     .service(post_subscription)
                     .service(put_subscription)
-                    .service(list_subscriptions),
+                    .service(list_subscriptions)
+                    .service(post_user)
+                    .service(get_user)
+                    .service(list_users),
             )
             // Other
             .service(client_context)

@@ -15,7 +15,7 @@ pub struct ResponseAppenderService<S> {
 
 impl<S, B> Service<ServiceRequest> for ResponseAppenderService<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>>,
     S::Future: 'static,
 {
     type Response = S::Response;
