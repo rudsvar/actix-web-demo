@@ -1,3 +1,5 @@
+//! Routes for user management.
+
 use crate::model::user::{HashedPassword, NewUser, User};
 use actix_web::{
     web::{Data, Json, Path},

@@ -1,3 +1,5 @@
+//! Health check related routes.
+
 use actix_web::{HttpResponse, Responder};
 
 #[actix_web::get("/health_check")]
