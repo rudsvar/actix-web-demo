@@ -38,3 +38,13 @@ pub async fn fetch_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     .fetch_all(pool)
     .await
 }
+
+/// Verify a password.
+pub async fn verify_password(
+    pool: &PgPool,
+    id: &Uuid,
+    password: &str,
+) -> Result<bool, sqlx::Error> {
+    let user = fetch_user_by_id(pool, id).await?;
+    Ok(user.password.verify(password))
+}

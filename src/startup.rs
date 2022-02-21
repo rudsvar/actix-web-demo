@@ -1,9 +1,10 @@
 //! A function for starting a server.
 
-use crate::middleware;
-use crate::routes::{
+use crate::api::{
     client_context::client_context, health_check::health_check, subscription::*, user::*,
 };
+use crate::middleware;
+use crate::service::login::login;
 use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::PgPool;
 use std::net::TcpListener;
@@ -29,7 +30,8 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
                     .service(list_subscriptions)
                     .service(post_user)
                     .service(get_user)
-                    .service(list_users),
+                    .service(list_users)
+                    .service(login),
             )
             // Other
             .service(client_context)

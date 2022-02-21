@@ -1,8 +1,8 @@
 use actix_http::StatusCode;
 use actix_web_demo::{
+    api::client_context::ClientContext,
     configuration::{get_configuration, DatabaseSettings},
     model::subscription::NewSubscription,
-    routes::client_context::ClientContext,
     startup::run,
     telemetry,
 };

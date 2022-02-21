@@ -23,6 +23,10 @@ impl HashedPassword {
     pub fn hashed_password(&self) -> &str {
         &self.0
     }
+    /// Compares the provided string to the stored password.
+    pub fn verify(&self, password: &str) -> bool {
+        bcrypt::verify(password, &self.0).unwrap()
+    }
 }
 
 impl Deref for HashedPassword {
