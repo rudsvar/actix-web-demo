@@ -2,7 +2,10 @@
 
 use actix_http::StatusCode;
 use actix_web::{error::InternalError, web, Error, FromRequest, HttpResponse};
+use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -70,8 +73,65 @@ impl FromRequest for AuthenticatedUser {
     }
 }
 
-#[actix_web::get("/login")]
+/// The data stored in the jwt
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct Claims {
+    id: Uuid,
+    exp: usize,
+}
+
+#[actix_web::post("/login")]
 pub async fn login(user: AuthenticatedUser) -> HttpResponse {
-    tracing::info!("Successfully validated {}", user.id);
-    HttpResponse::Ok().finish()
+    // Read secret from config
+    let config = match crate::configuration::get_configuration() {
+        Ok(c) => c,
+        Err(e) => {
+            return HttpResponse::InternalServerError().body(e.to_string());
+        }
+    };
+
+    // Set claims
+    let in_one_minute = Utc::now() + Duration::seconds(60);
+    let exp = in_one_minute.naive_utc().timestamp();
+    let claims = Claims {
+        id: *user.id(),
+        exp: exp as usize,
+    };
+
+    // Create jwt
+    let token = jsonwebtoken::encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
+    )
+    .unwrap();
+
+    tracing::info!("Sent jwt to: {}", user.id);
+
+    HttpResponse::Created().body(token)
+}
+
+#[actix_web::post("/verify")]
+pub async fn verify(token: web::Json<String>) -> HttpResponse {
+    tracing::info!("Token {}", token);
+    let config = match crate::configuration::get_configuration() {
+        Ok(c) => c,
+        Err(e) => {
+            return HttpResponse::InternalServerError().body(e.to_string());
+        }
+    };
+
+    let decoded = jsonwebtoken::decode::<Claims>(
+        &token,
+        &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
+        &Validation::default(),
+    );
+    match decoded {
+        Ok(token) => {
+            tracing::info!("Header {:?}", token.header);
+            tracing::info!("Claims {:?}", token.claims);
+            HttpResponse::Ok().body("Ok")
+        }
+        Err(e) => HttpResponse::Forbidden().body(format!("Forbidden: {}", e)),
+    }
 }

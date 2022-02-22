@@ -1,3 +1,3 @@
 //! Service implementations.
 
-pub mod login;
+pub mod auth;

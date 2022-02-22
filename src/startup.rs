@@ -4,7 +4,7 @@ use crate::api::{
     client_context::client_context, health_check::health_check, subscription::*, user::*,
 };
 use crate::middleware;
-use crate::service::login::login;
+use crate::service::auth::{login, verify};
 use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::PgPool;
 use std::net::TcpListener;
@@ -31,7 +31,8 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
                     .service(post_user)
                     .service(get_user)
                     .service(list_users)
-                    .service(login),
+                    .service(login)
+                    .service(verify),
             )
             // Other
             .service(client_context)

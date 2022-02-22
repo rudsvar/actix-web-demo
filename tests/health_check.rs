@@ -2,7 +2,10 @@ use actix_http::StatusCode;
 use actix_web_demo::{
     api::client_context::ClientContext,
     configuration::{get_configuration, DatabaseSettings},
-    model::subscription::NewSubscription,
+    model::{
+        subscription::NewSubscription,
+        user::{NewUser, User},
+    },
     startup::run,
     telemetry,
 };
@@ -213,4 +216,67 @@ async fn subscription_db_operations() {
     let form = &subscriptions[0];
     assert_eq!("bar@example.com", form.email);
     assert_eq!("bar", form.name);
+}
+
+#[actix_rt::test]
+async fn user_creation_to_token_verification() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    // Create new user
+    let user = NewUser {
+        name: "foo".to_string(),
+        password: "bar".to_string(),
+    };
+    let create_user_response = client
+        .post(format!("{}/api/users", &app.address))
+        .json(&user)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::CREATED, create_user_response.status());
+
+    // Try to get token with wrong password
+    let user: User = create_user_response.json().await.unwrap();
+    {
+        let response = client
+            .post(format!("{}/api/login", &app.address))
+            .header("id", &user.id.to_string())
+            .header("password", "baz")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(StatusCode::UNAUTHORIZED, response.status());
+    }
+
+    // Get token
+    let response = client
+        .post(format!("{}/api/login", &app.address))
+        .header("id", &user.id.to_string())
+        .header("password", "bar")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::CREATED, response.status());
+
+    // Fail with wrong token
+    let token: String = response.text().await.unwrap();
+    {
+        let response = client
+            .post(format!("{}/api/verify", &app.address))
+            .json(&format!("{}kjqw12", token))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(StatusCode::FORBIDDEN, response.status());
+    }
+
+    // Verify token
+    let response = client
+        .post(format!("{}/api/verify", &app.address))
+        .json(&token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::OK, response.status());
 }

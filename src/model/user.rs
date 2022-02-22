@@ -37,7 +37,7 @@ impl Deref for HashedPassword {
 }
 
 /// A new user.
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct NewUser {
     /// The name of the new user.
     pub name: String,
@@ -46,7 +46,7 @@ pub struct NewUser {
 }
 
 /// The more general user model.
-#[derive(Debug, Serialize, PartialEq, Eq, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::FromRow)]
 pub struct User {
     /// The id.
     pub id: Uuid,
