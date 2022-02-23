@@ -2,11 +2,12 @@
 
 use std::str::FromStr;
 
-use actix_http::StatusCode;
-use actix_web::{error::InternalError, http::header, web, Error, FromRequest, HttpResponse};
+use actix_http::{header::Header, StatusCode};
+use actix_web::{error::InternalError, web, Error, FromRequest, HttpResponse};
+use actix_web_httpauth::headers::authorization::{Authorization, Basic};
 use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -30,6 +31,10 @@ impl FromRequest for BasicAuth {
     type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
 
     fn from_request(req: &actix_web::HttpRequest, _: &mut actix_http::Payload) -> Self::Future {
+        let auth = Authorization::<Basic>::parse(req).unwrap();
+        let id = auth.as_ref().user_id();
+        let password = auth.as_ref().password().unwrap();
+
         // Get database connection
         let conn = match req.app_data::<web::Data<PgPool>>() {
             Some(conn) => conn.get_ref().clone(),
@@ -45,29 +50,9 @@ impl FromRequest for BasicAuth {
             }
         };
 
-        // Extract headers
-        let headers = req.headers();
-        let authentication = match headers.get(header::AUTHORIZATION).map(|hv| hv.to_str()) {
-            Some(Ok(auth)) => auth,
-            _ => {
-                return async {
-                    Err(InternalError::new(
-                        "Erroneous credentials, check authorization header",
-                        StatusCode::UNAUTHORIZED,
-                    )
-                    .into())
-                }
-                .boxed_local()
-            }
-        };
-
-        let credentials_base64 = authentication.split(' ').nth(1).unwrap();
-        let credentials = base64::decode(credentials_base64).unwrap();
-        let credentials = String::from_utf8(credentials).unwrap();
-        let mut credentials = credentials.split(':');
-        let username = credentials.next().unwrap();
-        let password = credentials.next().unwrap().to_string();
-        let id = Uuid::from_str(username).unwrap();
+        let id = id.to_string();
+        let id = Uuid::from_str(&id).unwrap();
+        let password = password.to_string();
 
         async move {
             let is_valid_result = crate::db::user::verify_password(&conn, &id, &password).await;
@@ -115,7 +100,7 @@ pub async fn login(user: BasicAuth) -> HttpResponse {
 
     // Create jwt
     let token = jsonwebtoken::encode(
-        &Header::default(),
+        &jsonwebtoken::Header::default(),
         &claims,
         &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
     )

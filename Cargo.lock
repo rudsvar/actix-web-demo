@@ -190,6 +190,7 @@ dependencies = [
  "actix-http",
  "actix-rt",
  "actix-web",
+ "actix-web-httpauth",
  "base64",
  "bcrypt",
  "chrono",
@@ -212,6 +213,21 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "actix-web-httpauth"
+version = "0.6.0-beta.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "742aeb2be54ba77f316b5055347e1df114afc1eb892ad44c6e8bab82311bd586"
+dependencies = [
+ "actix-service",
+ "actix-utils",
+ "actix-web",
+ "base64",
+ "futures-core",
+ "futures-util",
+ "pin-project-lite",
 ]
 
 [[package]]
