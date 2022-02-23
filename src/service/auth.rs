@@ -1,7 +1,9 @@
 //! A service that can receive user information and validate it.
 
+use std::str::FromStr;
+
 use actix_http::StatusCode;
-use actix_web::{error::InternalError, web, Error, FromRequest, HttpResponse};
+use actix_web::{error::InternalError, http::header, web, Error, FromRequest, HttpResponse};
 use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
@@ -12,18 +14,18 @@ use uuid::Uuid;
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
 #[derive(Copy, Clone, Debug)]
-pub struct AuthenticatedUser {
+pub struct BasicAuth {
     id: Uuid,
 }
 
-impl AuthenticatedUser {
+impl BasicAuth {
     /// Returns the id of the authenticated user.
     pub fn id(&self) -> &Uuid {
         &self.id
     }
 }
 
-impl FromRequest for AuthenticatedUser {
+impl FromRequest for BasicAuth {
     type Error = Error;
     type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
 
@@ -45,21 +47,34 @@ impl FromRequest for AuthenticatedUser {
 
         // Extract headers
         let headers = req.headers();
-        let id = headers.get("id").expect("id header").to_str().unwrap();
-        let id = Uuid::parse_str(id).expect("valid id");
-        let password = headers
-            .get("password")
-            .expect("password header")
-            .to_str()
-            .unwrap()
-            .to_owned();
+        let authentication = match headers.get(header::AUTHORIZATION).map(|hv| hv.to_str()) {
+            Some(Ok(auth)) => auth,
+            _ => {
+                return async {
+                    Err(InternalError::new(
+                        "Erroneous credentials, check authorization header",
+                        StatusCode::UNAUTHORIZED,
+                    )
+                    .into())
+                }
+                .boxed_local()
+            }
+        };
+
+        let credentials_base64 = authentication.split(' ').nth(1).unwrap();
+        let credentials = base64::decode(credentials_base64).unwrap();
+        let credentials = String::from_utf8(credentials).unwrap();
+        let mut credentials = credentials.split(':');
+        let username = credentials.next().unwrap();
+        let password = credentials.next().unwrap().to_string();
+        let id = Uuid::from_str(username).unwrap();
 
         async move {
             let is_valid_result = crate::db::user::verify_password(&conn, &id, &password).await;
             match is_valid_result {
                 Ok(is_valid) => {
                     if is_valid {
-                        Ok(AuthenticatedUser { id })
+                        Ok(BasicAuth { id })
                     } else {
                         Err(InternalError::new("Unauthorized", StatusCode::UNAUTHORIZED).into())
                     }
@@ -81,7 +96,7 @@ pub struct Claims {
 }
 
 #[actix_web::post("/login")]
-pub async fn login(user: AuthenticatedUser) -> HttpResponse {
+pub async fn login(user: BasicAuth) -> HttpResponse {
     // Read secret from config
     let config = match crate::configuration::get_configuration() {
         Ok(c) => c,

@@ -190,6 +190,7 @@ dependencies = [
  "actix-http",
  "actix-rt",
  "actix-web",
+ "base64",
  "bcrypt",
  "chrono",
  "config",

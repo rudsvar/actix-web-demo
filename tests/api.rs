@@ -241,8 +241,7 @@ async fn user_creation_to_token_verification() {
     {
         let response = client
             .post(format!("{}/api/login", &app.address))
-            .header("id", &user.id.to_string())
-            .header("password", "baz")
+            .basic_auth(&user.id.to_string(), Some("baz"))
             .send()
             .await
             .unwrap();
@@ -252,8 +251,7 @@ async fn user_creation_to_token_verification() {
     // Get token
     let response = client
         .post(format!("{}/api/login", &app.address))
-        .header("id", &user.id.to_string())
-        .header("password", "bar")
+        .basic_auth(&user.id.to_string(), Some("bar"))
         .send()
         .await
         .unwrap();
