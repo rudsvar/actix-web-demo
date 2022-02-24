@@ -27,5 +27,5 @@ async fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind(address)?;
 
     // Start application
-    startup::run(listener, db_pool)?.await
+    startup::run_app(listener, db_pool)?.await
 }

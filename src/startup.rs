@@ -11,7 +11,7 @@ use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
 /// Starts a [`Server`].
-pub fn run(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
+pub fn run_app(listener: TcpListener, db_pool: PgPool) -> std::io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
         App::new()
