@@ -9,7 +9,6 @@ use crate::{
     model::subscription::NewSubscription,
 };
 
-#[allow(clippy::async_yields_async)]
 #[tracing::instrument(
     skip(form, pool),
     fields(
