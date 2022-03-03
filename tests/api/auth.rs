@@ -13,7 +13,7 @@ async fn health_check_works() {
 
     // Act
     let response = client
-        .get(format!("{}/health_check", app.address))
+        .get(format!("{}/health_check", app.address()))
         .send()
         .await
         .expect("failed to execute request");
@@ -31,7 +31,7 @@ async fn subscribe_returns_a_201_for_valid_form_data() {
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
     // Act
     let response = client
-        .post(&format!("{}/api/subscriptions", app.address))
+        .post(&format!("{}/api/subscriptions", app.address()))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
@@ -40,8 +40,8 @@ async fn subscribe_returns_a_201_for_valid_form_data() {
     // Assert
     assert_eq!(StatusCode::CREATED, response.status());
 
-    let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&app.db_pool)
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions")
+        .fetch_one(app.db())
         .await
         .expect("Failed to fetch saved subscription.");
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
@@ -61,7 +61,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     for (invalid_body, error_message) in test_cases {
         // Act
         let response = client
-            .post(&format!("{}/api/subscriptions", app.address))
+            .post(&format!("{}/api/subscriptions", app.address()))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(invalid_body)
             .send()
@@ -83,7 +83,7 @@ async fn client_context_success() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
     let response = client
-        .get(format!("{}/client_context", app.address))
+        .get(format!("{}/client_context", app.address()))
         .header("user_id", "5")
         .header("user_name", "frodo")
         .header("token", "qwerty12345")
@@ -108,7 +108,7 @@ async fn user_creation_to_token_verification() {
         password: "bar".to_string(),
     };
     let create_user_response = client
-        .post(format!("{}/api/users", &app.address))
+        .post(format!("{}/api/users", &app.address()))
         .json(&user)
         .send()
         .await
@@ -119,7 +119,7 @@ async fn user_creation_to_token_verification() {
     let user: User = create_user_response.json().await.unwrap();
     {
         let response = client
-            .post(format!("{}/api/login", &app.address))
+            .post(format!("{}/api/login", &app.address()))
             .basic_auth(&user.id.to_string(), Some("baz"))
             .send()
             .await
@@ -129,7 +129,7 @@ async fn user_creation_to_token_verification() {
 
     // Get token
     let response = client
-        .post(format!("{}/api/login", &app.address))
+        .post(format!("{}/api/login", &app.address()))
         .basic_auth(&user.id.to_string(), Some("bar"))
         .send()
         .await
@@ -140,7 +140,7 @@ async fn user_creation_to_token_verification() {
     let token: String = response.text().await.unwrap();
     {
         let response = client
-            .post(format!("{}/api/verify", &app.address))
+            .post(format!("{}/api/verify", &app.address()))
             .json(&format!("{}kjqw12", token))
             .send()
             .await
@@ -150,7 +150,7 @@ async fn user_creation_to_token_verification() {
 
     // Verify token
     let response = client
-        .post(format!("{}/api/verify", &app.address))
+        .post(format!("{}/api/verify", &app.address()))
         .json(&token)
         .send()
         .await

@@ -1,17 +1,16 @@
 use actix_web_demo::{
     configuration::{get_configuration, DatabaseSettings},
-    startup::run_app,
     telemetry,
 };
 use once_cell::sync::Lazy;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
+use sqlx::{Executor, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let subscriber_name = "test".to_string();
     let default_filter_level = "info".to_string();
-    if std::env::var("TEST_LOG").is_ok() {
+    if std::env::var("RUST_LOG").is_ok() {
         let subscriber =
             telemetry::get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
         telemetry::init_subscriber(subscriber);
@@ -23,8 +22,50 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 });
 
 pub struct TestApp {
-    pub address: String,
-    pub db_pool: PgPool,
+    address: String,
+    db: PgPool,
+}
+
+impl TestApp {
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+
+    pub fn db(&self) -> &PgPool {
+        &self.db
+    }
+}
+
+/// Sets up a database connection pool for testing.
+/// This will connect using the provided database settings,
+/// create a new logical database, and run all migrations on it.
+pub async fn test_db(mut database_settings: DatabaseSettings) -> PgPool {
+    // Generate random database name and connection string
+    let database_name = Uuid::new_v4().to_string();
+    database_settings.database_name = database_name.clone();
+
+    // Connect to database
+    let db = PgPool::connect(&database_settings.connection_string_without_db())
+        .await
+        .expect("could not connect to db");
+
+    // Create logical database
+    db.execute(format!(r#"CREATE DATABASE "{}";"#, database_name).as_str())
+        .await
+        .expect("could not create database");
+
+    // Connect to logical database
+    let db = PgPool::connect(&database_settings.connection_string())
+        .await
+        .expect("could not connect to db");
+
+    // Migrate database
+    sqlx::migrate!()
+        .run(&db)
+        .await
+        .expect("could not migrate the database");
+
+    db
 }
 
 // Spawn an application used for testing
@@ -35,34 +76,10 @@ pub async fn spawn_test_app() -> TestApp {
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
 
-    let mut configuration = get_configuration().expect("Failed to read configuration.");
-    configuration.database.database_name = Uuid::new_v4().to_string();
-    let connection_pool = configure_database(&configuration.database).await;
-
-    let server = run_app(listener, connection_pool.clone()).expect("Failed to bind address");
+    let configuration = get_configuration().expect("Failed to read configuration");
+    let db = test_db(configuration.database).await;
+    let server = actix_web_demo::run_app(listener, db.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);
-    TestApp {
-        address,
-        db_pool: connection_pool,
-    }
-}
 
-pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    // Create database
-    let mut connection = PgConnection::connect(&config.connection_string_without_db())
-        .await
-        .expect("Failed to connect to Postgres.");
-    connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
-        .await
-        .expect("Failed to create database.");
-    // Migrate database
-    let connection_pool = PgPool::connect(&config.connection_string())
-        .await
-        .expect("Failed to connect to Postgres.");
-    sqlx::migrate!()
-        .run(&connection_pool)
-        .await
-        .expect("Failed to migrate the database");
-    connection_pool
+    TestApp { address, db }
 }

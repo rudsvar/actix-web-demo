@@ -55,7 +55,8 @@ impl DatabaseSettings {
             self.username, self.password, self.host, self.port, self.database_name
         )
     }
-    /// Constructs a connection string from the [`DatabaseSettings`], but without a specific database.
+
+    /// Constructs a connection string from the [`DatabaseSettings`], but without the database.
     pub fn connection_string_without_db(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}",

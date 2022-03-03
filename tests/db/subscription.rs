@@ -1,12 +1,10 @@
-use crate::common::configure_database;
+use crate::common::test_db;
 use actix_web_demo::{configuration::get_configuration, model::subscription::NewSubscription};
-use uuid::Uuid;
 
 #[actix_rt::test]
 async fn subscription_db_operations() {
-    let mut configuration = get_configuration().expect("could not read configuration");
-    configuration.database.database_name = Uuid::new_v4().to_string();
-    let pool = configure_database(&configuration.database).await;
+    let configuration = get_configuration().expect("could not read configuration");
+    let pool = test_db(configuration.database).await;
 
     // Insert
     let form = NewSubscription::new("foo@example.com", "foo");
