@@ -17,6 +17,7 @@ r2d2 = "0.8.9"
 r2d2_postgres = "0.18.1"
 uuid = { version =  "0.8.2", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
+thiserror = "1.0.30"
 
 tracing = { version = "0.1.19", features = ["log"] }
 tracing-futures = "0.2.4"
@@ -30,6 +31,7 @@ futures = "0.3.19"
 bcrypt = "0.10.1"
 jsonwebtoken = "8.0.1"
 base64 = "0.13.0"
+console-subscriber = "0.1.3"
 
 [dependencies.sqlx]
 version = "0.5.9"

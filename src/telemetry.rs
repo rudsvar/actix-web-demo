@@ -15,11 +15,14 @@ pub fn get_subscriber(
 ) -> impl Subscriber + Send + Sync {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
+    let json_storage_layer = JsonStorageLayer;
     let formatting_layer = BunyanFormattingLayer::new(name, sink);
+    let console_layer = console_subscriber::spawn();
     Registry::default()
         .with(env_filter)
-        .with(JsonStorageLayer)
+        .with(json_storage_layer)
         .with(formatting_layer)
+        .with(console_layer)
 }
 
 /// Initializes the logger [`LogTracer`], and sets the global subscriber.
