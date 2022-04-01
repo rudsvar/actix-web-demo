@@ -40,9 +40,11 @@ features = [
     "runtime-actix-rustls",
     "macros",
     "postgres",
+    "sqlite",
     "uuid",
     "chrono",
-    "migrate"
+    "migrate",
+    "any"
 ]
 
 [dev-dependencies]

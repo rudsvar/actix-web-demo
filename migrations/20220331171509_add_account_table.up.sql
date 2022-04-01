@@ -1,0 +1,5 @@
+CREATE TABLE accounts (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    balance INTEGER NOT NULL UNIQUE
+);

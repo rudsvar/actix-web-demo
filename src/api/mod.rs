@@ -4,3 +4,4 @@ pub mod client_context;
 pub mod health_check;
 pub mod subscription;
 pub mod user;
+pub mod accounts;

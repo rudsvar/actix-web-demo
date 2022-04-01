@@ -12,6 +12,7 @@ use crate::api::{
 };
 use crate::service::auth::{login, verify};
 use actix_web::{dev::Server, web, App, HttpServer};
+use api::accounts::{deposit, get_account, post_account, withdraw};
 use sqlx::PgPool;
 use std::io;
 use std::net::TcpListener;
@@ -47,7 +48,11 @@ pub fn run_app(listener: TcpListener, db_pool: PgPool) -> io::Result<Server> {
                     .service(get_user)
                     .service(list_users)
                     .service(login)
-                    .service(verify),
+                    .service(verify)
+                    .service(post_account)
+                    .service(get_account)
+                    .service(deposit)
+                    .service(withdraw),
             )
             // Other
             .service(client_context)
