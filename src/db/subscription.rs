@@ -16,7 +16,7 @@ pub async fn insert_subscription(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, email, name, subscribed_at
+        RETURNING *
         "#,
         Uuid::new_v4(),
         form.email,
@@ -42,7 +42,7 @@ pub async fn update_subscription(
         r#"
         UPDATE subscriptions SET email = $1, name = $2
         WHERE id = $3
-        RETURNING id, email, name, subscribed_at
+        RETURNING *
         "#,
         form.email,
         form.name,

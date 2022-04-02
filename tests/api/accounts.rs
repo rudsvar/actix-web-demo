@@ -97,7 +97,14 @@ async fn deposit_increases_balance() {
 
     assert_eq!(StatusCode::CREATED, response.status());
 
-    let new_account: Account = response.json().await.unwrap();
+    let new_account: Account = client
+        .get(format!("{}/api/accounts/1", app.address()))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
 
     assert_eq!(
         old_account.balance() + deposit_amount,
@@ -134,7 +141,15 @@ async fn withdraw_decreases_balance() {
         .await
         .unwrap();
     assert_eq!(StatusCode::CREATED, response.status());
-    let new_account: Account = response.json().await.unwrap();
+
+    let new_account: Account = client
+        .get(format!("{}/api/accounts/1", app.address()))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
 
     assert_eq!(
         old_account.balance() - withdrawal_amount,

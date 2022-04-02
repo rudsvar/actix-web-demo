@@ -4,6 +4,7 @@ use actix_web::{
     web::{Data, Json, Path},
     HttpResponse,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 
@@ -107,18 +108,39 @@ impl Deposit {
 }
 
 #[actix_web::post("/accounts/{id}/deposits")]
-pub async fn deposit(db: Data<PgPool>, deposit: Json<Deposit>) -> HttpResponse {
-    // Store in db
-    let account = sqlx::query_as!(
-        Account,
-        r#"UPDATE accounts SET balance = balance + $1 RETURNING *"#,
-        deposit.amount,
+pub async fn deposit(db: Data<PgPool>, id: Path<i32>, deposit: Json<Deposit>) -> HttpResponse {
+    let mut tx = db.begin().await.unwrap();
+    let id = id.into_inner();
+
+    // Store transaction
+    let transaction = sqlx::query_as!(
+        Deposit,
+        "INSERT INTO transactions (account, amount) VALUES ($1, $2) returning amount",
+        id,
+        deposit.amount
     )
-    .fetch_one(db.get_ref())
+    .fetch_one(&mut tx)
     .await
     .unwrap();
+
+    // Update account
+    sqlx::query!(
+        r#"
+        UPDATE accounts
+        SET balance = balance + $1
+        WHERE id = $2
+        "#,
+        deposit.amount,
+        id
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    tx.commit().await.unwrap();
+
     // Create response
-    HttpResponse::Created().json(account)
+    HttpResponse::Created().json(transaction)
 }
 
 /// A withdrawal.
@@ -141,12 +163,23 @@ pub async fn withdraw(
     id: Path<i32>,
     withdrawal: Json<Withdrawal>,
 ) -> HttpResponse {
-    let mut transaction = db.get_ref().begin().await.unwrap();
+    let mut tx = db.get_ref().begin().await.unwrap();
     let id = id.into_inner();
+
+    // Store transaction
+    let transaction = sqlx::query_as!(
+        Withdrawal,
+        "INSERT INTO transactions (account, amount) VALUES ($1, $2) RETURNING amount",
+        id,
+        -withdrawal.amount
+    )
+    .fetch_one(&mut tx)
+    .await
+    .unwrap();
 
     // Check account balance
     let old_account = sqlx::query_as!(Account, "SELECT * FROM accounts WHERE id = $1", id)
-        .fetch_one(&mut transaction)
+        .fetch_one(&mut tx)
         .await
         .unwrap();
 
@@ -158,17 +191,104 @@ pub async fn withdraw(
     }
 
     // Store in db
-    let account = sqlx::query_as!(
-        Account,
-        "UPDATE accounts SET balance = balance - $1 WHERE id = $2 RETURNING *",
+    sqlx::query!(
+        "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
         withdrawal.amount,
         id
     )
-    .fetch_one(&mut transaction)
+    .execute(&mut tx)
     .await
     .unwrap();
 
-    transaction.commit().await.unwrap();
+    tx.commit().await.unwrap();
 
-    HttpResponse::Created().json(account)
+    HttpResponse::Created().json(transaction)
+}
+
+/// A new transfer between accounts.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct NewTransfer {
+    /// The account to take money from.
+    pub from_account: i32,
+    /// The account to send money to.
+    pub to_account: i32,
+    /// The amount of money.
+    pub amount: i32,
+}
+
+/// A stored transfer between accounts.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, FromRow)]
+pub struct Transfer {
+    /// The id of the transfer.
+    pub id: i32,
+    /// The account to take money from.
+    pub from_account: i32,
+    /// The account to send money to.
+    pub to_account: i32,
+    /// The amount of money.
+    pub amount: i32,
+    /// A timestamp for the transaction.
+    pub created_at: DateTime<Utc>,
+}
+
+#[actix_web::post("/transfers")]
+pub async fn transfer(db: Data<PgPool>, new_transfer: Json<NewTransfer>) -> HttpResponse {
+    let mut tx = db.get_ref().begin().await.unwrap();
+
+    // Store transaction
+    let transfer = sqlx::query_as!(
+        Transfer,
+        r#"
+        INSERT INTO transfers (from_account, to_account, amount)
+        VALUES ($1, $2, $3)
+        RETURNING *
+        "#,
+        new_transfer.from_account,
+        new_transfer.to_account,
+        new_transfer.amount,
+    )
+    .fetch_one(&mut tx)
+    .await
+    .unwrap();
+
+    // Verify old account
+    let old_account = sqlx::query_as!(
+        Account,
+        "SELECT * FROM accounts WHERE id = $1",
+        transfer.from_account
+    )
+    .fetch_one(&mut tx)
+    .await
+    .unwrap();
+
+    if old_account.balance < transfer.amount {
+        return HttpResponse::BadRequest().json(format!(
+            "Balance is too low, had {} but required {}",
+            old_account.balance, transfer.amount
+        ));
+    }
+
+    // Take money from account
+    sqlx::query!(
+        "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
+        transfer.amount,
+        transfer.from_account
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    // Take money from account
+    sqlx::query!(
+        "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
+        transfer.amount,
+        transfer.to_account
+    )
+    .execute(&mut tx)
+    .await
+    .unwrap();
+
+    tx.commit().await.unwrap();
+
+    HttpResponse::Created().json(transfer)
 }
