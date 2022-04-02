@@ -8,9 +8,12 @@
 //! A demo web service implemented with actix web.
 
 use crate::api::{
-    client_context::client_context, health_check::health_check, subscription::*, user::*,
+    auth::{login, verify},
+    client_context::client_context,
+    health_check::health_check,
+    subscription::*,
+    user::*,
 };
-use crate::service::auth::{login, verify};
 use actix_web::{dev::Server, web, App, HttpServer};
 use api::accounts::{deposit, get_account, post_account, withdraw};
 use sqlx::PgPool;
@@ -23,7 +26,6 @@ pub mod configuration;
 pub mod db;
 pub mod middleware;
 pub mod model;
-pub mod service;
 pub mod telemetry;
 
 /// Starts a [`Server`].
