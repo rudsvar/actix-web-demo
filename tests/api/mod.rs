@@ -1,2 +1,2 @@
-mod auth;
 mod accounts;
+mod auth;
