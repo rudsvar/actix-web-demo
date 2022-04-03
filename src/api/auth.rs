@@ -31,7 +31,17 @@ impl FromRequest for BasicAuth {
     type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
 
     fn from_request(req: &actix_web::HttpRequest, _: &mut actix_http::Payload) -> Self::Future {
-        let auth = Authorization::<Basic>::parse(req).unwrap();
+        let auth = Authorization::<Basic>::parse(req);
+        if let Err(e) = auth {
+            return async move {
+                Err(
+                    InternalError::new(format!("Can't authorize: {}", e), StatusCode::UNAUTHORIZED)
+                        .into(),
+                )
+            }
+            .boxed_local();
+        }
+        let auth = auth.unwrap();
         let id = auth.as_ref().user_id();
         let password = auth.as_ref().password().unwrap();
 
