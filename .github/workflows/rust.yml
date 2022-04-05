@@ -26,16 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Cache dependencies
-        id: cache-dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -43,6 +33,8 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v1
 
       - name: Cache sqlx-cli
         uses: actions/cache@v2
