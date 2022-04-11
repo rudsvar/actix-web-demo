@@ -1,5 +1,6 @@
 //! An API for creating and modifying accounts.
 
+use crate::{error::DbError, DbPool};
 use actix_web::{
     web::{Data, Json, Path},
     HttpResponse,
@@ -7,8 +8,6 @@ use actix_web::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-
-use crate::{error::DbError, DbPool};
 
 /// A new account.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,7 +122,11 @@ impl Deposit {
 }
 
 #[actix_web::post("/accounts/{id}/deposits")]
-pub async fn deposit(db: Data<DbPool>, id: Path<i32>, deposit: Json<Deposit>) -> HttpResponse {
+pub async fn deposit(
+    db: Data<DbPool>,
+    id: Path<i32>,
+    deposit: Json<Deposit>,
+) -> Result<HttpResponse, DbError> {
     let id = id.into_inner();
 
     // Update account
@@ -137,11 +140,10 @@ pub async fn deposit(db: Data<DbPool>, id: Path<i32>, deposit: Json<Deposit>) ->
         id
     )
     .execute(db.get_ref())
-    .await
-    .unwrap();
+    .await?;
 
     // Create response
-    HttpResponse::Created().finish()
+    Ok(HttpResponse::Created().finish())
 }
 
 /// A withdrawal.
@@ -170,8 +172,7 @@ pub async fn withdraw(
     // Check account balance
     let old_account = sqlx::query_as!(Account, "SELECT * FROM accounts WHERE id = $1", id)
         .fetch_one(&mut tx)
-        .await
-        .unwrap();
+        .await?;
 
     if old_account.balance < withdrawal.amount {
         return Ok(HttpResponse::BadRequest().json(format!(
@@ -187,10 +188,9 @@ pub async fn withdraw(
         id
     )
     .execute(&mut tx)
-    .await
-    .unwrap();
+    .await?;
 
-    tx.commit().await.unwrap();
+    tx.commit().await?;
 
     Ok(HttpResponse::Created().finish())
 }
@@ -222,8 +222,11 @@ pub struct Transfer {
 }
 
 #[actix_web::post("/transfers")]
-pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> HttpResponse {
-    let mut tx = db.get_ref().begin().await.unwrap();
+pub async fn transfer(
+    db: Data<DbPool>,
+    new_transfer: Json<NewTransfer>,
+) -> Result<HttpResponse, DbError> {
+    let mut tx = db.get_ref().begin().await?;
 
     // Store transaction
     let transfer = sqlx::query_as!(
@@ -238,8 +241,7 @@ pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> Http
         new_transfer.amount,
     )
     .fetch_one(&mut tx)
-    .await
-    .unwrap();
+    .await?;
 
     // Verify old account
     let old_account = sqlx::query_as!(
@@ -248,14 +250,13 @@ pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> Http
         transfer.from_account
     )
     .fetch_one(&mut tx)
-    .await
-    .unwrap();
+    .await?;
 
     if old_account.balance < transfer.amount {
-        return HttpResponse::BadRequest().json(format!(
+        return Ok(HttpResponse::BadRequest().json(format!(
             "Balance is too low, had {} but required {}",
             old_account.balance, transfer.amount
-        ));
+        )));
     }
 
     // Take money from account
@@ -265,8 +266,7 @@ pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> Http
         transfer.from_account
     )
     .execute(&mut tx)
-    .await
-    .unwrap();
+    .await?;
 
     // Take money from account
     sqlx::query!(
@@ -275,10 +275,9 @@ pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> Http
         transfer.to_account
     )
     .execute(&mut tx)
-    .await
-    .unwrap();
+    .await?;
 
-    tx.commit().await.unwrap();
+    tx.commit().await?;
 
-    HttpResponse::Created().json(transfer)
+    Ok(HttpResponse::Created().json(transfer))
 }
