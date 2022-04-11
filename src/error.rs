@@ -7,6 +7,9 @@ use thiserror::Error;
 /// A general application error.
 #[derive(Debug, Error)]
 pub enum ApplicationError {
+    /// A logical error.
+    #[error("business error: {0}")]
+    BusinessError(#[from] BusinessError),
     /// An external dependency failed.
     #[error("database error: {0}")]
     DbError(#[from] DbError),
@@ -16,7 +19,24 @@ impl ResponseError for ApplicationError {
     fn status_code(&self) -> actix_http::StatusCode {
         tracing::error!("{}", self);
         match self {
+            ApplicationError::BusinessError(_) => todo!(),
             ApplicationError::DbError(error) => error.status_code(),
+        }
+    }
+}
+
+/// A logical error for when the operation could not be performed.
+#[derive(Debug, Error)]
+pub enum BusinessError {
+    /// A validation failed.
+    #[error("{0}")]
+    ValidationError(String),
+}
+
+impl ResponseError for BusinessError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            BusinessError::ValidationError(_) => StatusCode::BAD_REQUEST,
         }
     }
 }
