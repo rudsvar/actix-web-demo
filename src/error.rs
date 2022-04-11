@@ -12,6 +12,15 @@ pub enum ApplicationError {
     DbError(#[from] DbError),
 }
 
+impl ResponseError for ApplicationError {
+    fn status_code(&self) -> actix_http::StatusCode {
+        tracing::error!("{}", self);
+        match self {
+            ApplicationError::DbError(error) => error.status_code(),
+        }
+    }
+}
+
 /// Error representing a failure at the database layer.
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -31,6 +40,7 @@ pub enum DbError {
 
 impl ResponseError for DbError {
     fn status_code(&self) -> actix_http::StatusCode {
+        tracing::error!("{}", self);
         match self {
             DbError::NotFound => StatusCode::NOT_FOUND,
             DbError::Conflict => StatusCode::CONFLICT,
