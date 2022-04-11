@@ -1,7 +1,5 @@
 //! A service that can receive user information and validate it.
 
-use std::str::FromStr;
-
 use actix_http::{header::Header, StatusCode};
 use actix_web::{error::InternalError, web, Error, FromRequest, HttpResponse};
 use actix_web_httpauth::headers::authorization::{Authorization, Basic};
@@ -9,19 +7,19 @@ use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-use uuid::Uuid;
+
+use crate::DbPool;
 
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
 #[derive(Copy, Clone, Debug)]
 pub struct BasicAuth {
-    id: Uuid,
+    id: i32,
 }
 
 impl BasicAuth {
     /// Returns the id of the authenticated user.
-    pub fn id(&self) -> &Uuid {
+    pub fn id(&self) -> &i32 {
         &self.id
     }
 }
@@ -46,7 +44,7 @@ impl FromRequest for BasicAuth {
         let password = auth.as_ref().password().unwrap();
 
         // Get database connection
-        let conn = match req.app_data::<web::Data<PgPool>>() {
+        let conn = match req.app_data::<web::Data<DbPool>>() {
             Some(conn) => conn.get_ref().clone(),
             None => {
                 return async {
@@ -60,8 +58,7 @@ impl FromRequest for BasicAuth {
             }
         };
 
-        let id = id.to_string();
-        let id = Uuid::from_str(&id).unwrap();
+        let id: i32 = id.parse().unwrap();
         let password = password.to_string();
 
         async move {
@@ -86,7 +83,7 @@ impl FromRequest for BasicAuth {
 /// The data stored in the jwt
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Claims {
-    id: Uuid,
+    id: i32,
     exp: usize,
 }
 

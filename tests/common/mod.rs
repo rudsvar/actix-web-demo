@@ -1,9 +1,9 @@
 use actix_web_demo::{
     configuration::{get_configuration, DatabaseSettings},
-    telemetry,
+    telemetry, DbPool,
 };
 use once_cell::sync::Lazy;
-use sqlx::{Executor, PgPool};
+use sqlx::Executor;
 use std::net::TcpListener;
 use uuid::Uuid;
 
@@ -23,7 +23,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 
 pub struct TestApp {
     address: String,
-    db: PgPool,
+    db: DbPool,
 }
 
 impl TestApp {
@@ -31,7 +31,7 @@ impl TestApp {
         &self.address
     }
 
-    pub fn db(&self) -> &PgPool {
+    pub fn db(&self) -> &DbPool {
         &self.db
     }
 }
@@ -39,13 +39,13 @@ impl TestApp {
 /// Sets up a database connection pool for testing.
 /// This will connect using the provided database settings,
 /// create a new logical database, and run all migrations on it.
-pub async fn test_db(mut database_settings: DatabaseSettings) -> PgPool {
+pub async fn test_db(mut database_settings: DatabaseSettings) -> DbPool {
     // Generate random database name and connection string
     let database_name = Uuid::new_v4().to_string();
     database_settings.database_name = database_name.clone();
 
     // Connect to database
-    let db = PgPool::connect(&database_settings.connection_string_without_db())
+    let db = DbPool::connect(&database_settings.connection_string_without_db())
         .await
         .expect("could not connect to db");
 
@@ -55,7 +55,7 @@ pub async fn test_db(mut database_settings: DatabaseSettings) -> PgPool {
         .expect("could not create database");
 
     // Connect to logical database
-    let db = PgPool::connect(&database_settings.connection_string())
+    let db = DbPool::connect(&database_settings.connection_string())
         .await
         .expect("could not connect to db");
 

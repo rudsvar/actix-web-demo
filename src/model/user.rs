@@ -4,7 +4,6 @@ use std::ops::Deref;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 /// A wrapper type that guarantees that a password is hashed.
 #[derive(
@@ -49,7 +48,7 @@ pub struct NewUser {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::FromRow)]
 pub struct User {
     /// The id.
-    pub id: Uuid,
+    pub id: i32,
     /// The name of the new user.
     pub name: String,
     /// The password of the new user.

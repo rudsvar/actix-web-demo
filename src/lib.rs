@@ -11,7 +11,6 @@ use crate::api::{
     auth::{login, verify},
     client_context::client_context,
     health_check::health_check,
-    subscription::*,
     user::*,
 };
 use actix_web::{dev::Server, web, App, HttpServer};
@@ -24,12 +23,16 @@ use tracing_actix_web::TracingLogger;
 pub mod api;
 pub mod configuration;
 pub mod db;
+pub mod error;
 pub mod middleware;
 pub mod model;
 pub mod telemetry;
 
+/// The database connection pool type used in the application.
+pub type DbPool = PgPool;
+
 /// Starts a [`Server`].
-pub fn run_app(listener: TcpListener, db_pool: PgPool) -> io::Result<Server> {
+pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
         App::new()
@@ -43,9 +46,6 @@ pub fn run_app(listener: TcpListener, db_pool: PgPool) -> io::Result<Server> {
             .service(
                 // Subscription
                 web::scope("/api")
-                    .service(post_subscription)
-                    .service(put_subscription)
-                    .service(list_subscriptions)
                     .service(post_user)
                     .service(get_user)
                     .service(list_users)

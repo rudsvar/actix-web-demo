@@ -7,7 +7,7 @@ async fn post_account_gives_201() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let new_account = NewAccount::new("my_account".to_string());
+    let new_account = NewAccount::new("my_account".to_string(), 1);
 
     // Act
     let response = client
@@ -24,6 +24,7 @@ async fn post_account_gives_201() {
     assert_ne!(0, created_account.id());
     assert_eq!("my_account".to_string(), created_account.name());
     assert_eq!(0, created_account.balance());
+    assert_eq!(1, created_account.owner_id());
 }
 
 #[actix_rt::test]
@@ -38,14 +39,14 @@ async fn get_account_gives_200() {
 
     // Read response
     let response = client
-        .get(format!("{}/api/accounts/1", app.address()))
+        .get(format!("{}/api/accounts/4", app.address()))
         .send()
         .await
         .unwrap();
     assert_eq!(StatusCode::OK, response.status());
 
     let account: Account = response.json().await.unwrap();
-    assert_eq!(Account::new(1, "test".to_string(), 200), account);
+    assert_eq!(Account::new(4, "test".to_string(), 200, 1), account);
 }
 
 #[actix_rt::test]
@@ -59,7 +60,7 @@ async fn get_missing_account_gives_404() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{}/api/accounts/2", app.address()))
+        .get(format!("{}/api/accounts/0", app.address()))
         .send()
         .await
         .unwrap();
@@ -77,7 +78,7 @@ async fn deposit_increases_balance() {
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/accounts/1", app.address()))
+        .get(format!("{}/api/accounts/4", app.address()))
         .send()
         .await
         .unwrap()
@@ -89,7 +90,7 @@ async fn deposit_increases_balance() {
     let deposit_amount = 50;
     let deposit = Deposit::new(deposit_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/deposits", app.address()))
+        .post(format!("{}/api/accounts/4/deposits", app.address()))
         .json(&deposit)
         .send()
         .await
@@ -98,7 +99,7 @@ async fn deposit_increases_balance() {
     assert_eq!(StatusCode::CREATED, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/accounts/1", app.address()))
+        .get(format!("{}/api/accounts/4", app.address()))
         .send()
         .await
         .unwrap()
@@ -123,7 +124,7 @@ async fn withdraw_decreases_balance() {
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/accounts/1", app.address()))
+        .get(format!("{}/api/accounts/4", app.address()))
         .send()
         .await
         .unwrap()
@@ -135,7 +136,7 @@ async fn withdraw_decreases_balance() {
     let withdrawal_amount = 50;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
+        .post(format!("{}/api/accounts/4/withdrawals", app.address()))
         .json(&withdrawal)
         .send()
         .await
@@ -143,7 +144,7 @@ async fn withdraw_decreases_balance() {
     assert_eq!(StatusCode::CREATED, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/accounts/1", app.address()))
+        .get(format!("{}/api/accounts/4", app.address()))
         .send()
         .await
         .unwrap()
@@ -170,7 +171,7 @@ async fn withdrawing_too_much_fails() {
     let withdrawal_amount = 500;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
+        .post(format!("{}/api/accounts/4/withdrawals", app.address()))
         .json(&withdrawal)
         .send()
         .await

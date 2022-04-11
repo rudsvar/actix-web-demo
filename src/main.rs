@@ -1,5 +1,4 @@
-use actix_web_demo::{configuration::get_configuration, telemetry};
-use sqlx::PgPool;
+use actix_web_demo::{configuration::get_configuration, telemetry, DbPool};
 use std::net::TcpListener;
 
 #[actix_web::main]
@@ -12,7 +11,7 @@ async fn main() -> std::io::Result<()> {
 
     // Connect to db
     let connection_string = configuration.database.connection_string();
-    let db_pool = PgPool::connect(&connection_string)
+    let db_pool = DbPool::connect(&connection_string)
         .await
         .expect("could not connect to db");
 

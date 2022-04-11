@@ -6,19 +6,22 @@ use actix_web::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
+use sqlx::FromRow;
+
+use crate::{error::DbError, DbPool};
 
 /// A new account.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewAccount {
     name: String,
+    owner_id: i32,
 }
 
 impl NewAccount {
     /// Creates a new account.
     #[must_use]
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(name: String, owner_id: i32) -> Self {
+        Self { name, owner_id }
     }
 }
 
@@ -31,13 +34,20 @@ pub struct Account {
     pub name: String,
     /// The current balance of the account.
     pub balance: i32,
+    /// The owner of the account.
+    pub owner_id: i32,
 }
 
 impl Account {
     /// Creates a new account.
     #[must_use]
-    pub fn new(id: i32, name: String, balance: i32) -> Self {
-        Self { id, name, balance }
+    pub fn new(id: i32, name: String, balance: i32, owner_id: i32) -> Self {
+        Self {
+            id,
+            name,
+            balance,
+            owner_id,
+        }
     }
 
     /// Get the account's id.
@@ -57,40 +67,45 @@ impl Account {
     pub fn balance(&self) -> i32 {
         self.balance
     }
+
+    /// Get the account's owner id.
+    #[must_use]
+    pub fn owner_id(&self) -> i32 {
+        self.owner_id
+    }
 }
 
 #[actix_web::post("/accounts")]
-pub async fn post_account(db: Data<PgPool>, new_account: Json<NewAccount>) -> HttpResponse {
+pub async fn post_account(
+    db: Data<DbPool>,
+    new_account: Json<NewAccount>,
+) -> Result<HttpResponse, DbError> {
     // Store in db
     let account = sqlx::query_as!(
         Account,
-        r#"INSERT INTO accounts (name, balance) VALUES ($1, $2) RETURNING *"#,
+        r#"INSERT INTO accounts (name, balance, owner_id) VALUES ($1, $2, $3) RETURNING *"#,
         new_account.name,
-        0i32
+        0i32,
+        new_account.owner_id
     )
     .fetch_one(db.get_ref())
-    .await
-    .unwrap();
+    .await?;
     // Respond with newly created object
-    HttpResponse::Created().json(account)
+    Ok(HttpResponse::Created().json(account))
 }
 
 #[actix_web::get("/accounts/{id}")]
-pub async fn get_account(db: Data<PgPool>, id: Path<i32>) -> HttpResponse {
+pub async fn get_account(db: Data<DbPool>, id: Path<i32>) -> Result<HttpResponse, DbError> {
     let account = sqlx::query_as!(
         Account,
         r#"SELECT * FROM accounts WHERE id = $1"#,
         id.into_inner()
     )
     .fetch_one(db.get_ref())
-    .await;
+    .await?;
 
     // Respond with newly created object or error message
-    match account {
-        Ok(account) => HttpResponse::Ok().json(account),
-        Err(sqlx::Error::RowNotFound) => HttpResponse::NotFound().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    Ok(HttpResponse::Ok().json(account))
 }
 
 /// A deposit.
@@ -108,20 +123,8 @@ impl Deposit {
 }
 
 #[actix_web::post("/accounts/{id}/deposits")]
-pub async fn deposit(db: Data<PgPool>, id: Path<i32>, deposit: Json<Deposit>) -> HttpResponse {
-    let mut tx = db.begin().await.unwrap();
+pub async fn deposit(db: Data<DbPool>, id: Path<i32>, deposit: Json<Deposit>) -> HttpResponse {
     let id = id.into_inner();
-
-    // Store transaction
-    let transaction = sqlx::query_as!(
-        Deposit,
-        "INSERT INTO transactions (account, amount) VALUES ($1, $2) returning amount",
-        id,
-        deposit.amount
-    )
-    .fetch_one(&mut tx)
-    .await
-    .unwrap();
 
     // Update account
     sqlx::query!(
@@ -133,14 +136,12 @@ pub async fn deposit(db: Data<PgPool>, id: Path<i32>, deposit: Json<Deposit>) ->
         deposit.amount,
         id
     )
-    .execute(&mut tx)
+    .execute(db.get_ref())
     .await
     .unwrap();
 
-    tx.commit().await.unwrap();
-
     // Create response
-    HttpResponse::Created().json(transaction)
+    HttpResponse::Created().finish()
 }
 
 /// A withdrawal.
@@ -159,23 +160,12 @@ impl Withdrawal {
 
 #[actix_web::post("/accounts/{id}/withdrawals")]
 pub async fn withdraw(
-    db: Data<PgPool>,
+    db: Data<DbPool>,
     id: Path<i32>,
     withdrawal: Json<Withdrawal>,
-) -> HttpResponse {
-    let mut tx = db.get_ref().begin().await.unwrap();
+) -> Result<HttpResponse, DbError> {
+    let mut tx = db.get_ref().begin().await?;
     let id = id.into_inner();
-
-    // Store transaction
-    let transaction = sqlx::query_as!(
-        Withdrawal,
-        "INSERT INTO transactions (account, amount) VALUES ($1, $2) RETURNING amount",
-        id,
-        -withdrawal.amount
-    )
-    .fetch_one(&mut tx)
-    .await
-    .unwrap();
 
     // Check account balance
     let old_account = sqlx::query_as!(Account, "SELECT * FROM accounts WHERE id = $1", id)
@@ -184,10 +174,10 @@ pub async fn withdraw(
         .unwrap();
 
     if old_account.balance < withdrawal.amount {
-        return HttpResponse::BadRequest().json(format!(
+        return Ok(HttpResponse::BadRequest().json(format!(
             "Balance is too low, had {} but required {}",
             old_account.balance, withdrawal.amount
-        ));
+        )));
     }
 
     // Store in db
@@ -202,7 +192,7 @@ pub async fn withdraw(
 
     tx.commit().await.unwrap();
 
-    HttpResponse::Created().json(transaction)
+    Ok(HttpResponse::Created().finish())
 }
 
 /// A new transfer between accounts.
@@ -232,7 +222,7 @@ pub struct Transfer {
 }
 
 #[actix_web::post("/transfers")]
-pub async fn transfer(db: Data<PgPool>, new_transfer: Json<NewTransfer>) -> HttpResponse {
+pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> HttpResponse {
     let mut tx = db.get_ref().begin().await.unwrap();
 
     // Store transaction

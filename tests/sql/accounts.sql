@@ -1,1 +1,1 @@
-INSERT INTO accounts (id, name, balance) VALUES (1, 'test', 200);
+INSERT INTO accounts (id, name, balance, owner_id) VALUES (4, 'test', 200, 1);
