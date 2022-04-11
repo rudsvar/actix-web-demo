@@ -27,6 +27,7 @@ pub mod error;
 pub mod middleware;
 pub mod model;
 pub mod telemetry;
+pub mod validated;
 
 /// The database connection pool type used in the application.
 pub type DbPool = PgPool;
