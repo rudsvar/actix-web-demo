@@ -8,7 +8,7 @@ use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::DbPool;
+use crate::{service::user::user_db, DbPool};
 
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
@@ -62,7 +62,7 @@ impl FromRequest for BasicAuth {
         let password = password.to_string();
 
         async move {
-            let is_valid_result = crate::db::user::verify_password(&conn, &id, &password).await;
+            let is_valid_result = user_db::verify_password(&conn, &id, &password).await;
             match is_valid_result {
                 Ok(is_valid) => {
                     if is_valid {

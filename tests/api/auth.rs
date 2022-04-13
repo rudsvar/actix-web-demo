@@ -2,7 +2,7 @@ use crate::common::spawn_test_app;
 use actix_http::StatusCode;
 use actix_web_demo::{
     api::client_context::ClientContext,
-    model::user::{NewUser, User},
+    service::user::user_model::{NewUser, User},
 };
 
 #[actix_rt::test]

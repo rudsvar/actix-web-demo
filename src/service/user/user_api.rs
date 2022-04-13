@@ -1,11 +1,10 @@
 //! Routes for user management.
 
-use crate::{
-    db::user::{fetch_all_users, fetch_user_by_id, store_user},
-    error::ApplicationError,
-    model::user::NewUser,
-    DbPool,
+use super::{
+    user_db::{fetch_all_users, fetch_user_by_id, store_user},
+    user_model::NewUser,
 };
+use crate::{error::ApplicationError, DbPool};
 use actix_web::{
     web::{Data, Json, Path},
     HttpResponse,

@@ -1,8 +1,9 @@
 //! Functions for storing and retrieving subscriptions from a database.
 
+use super::user_model::NewUser;
 use crate::{
     error::DbError,
-    model::user::{HashedPassword, NewUser, User},
+    service::user::user_model::{HashedPassword, User},
     DbPool,
 };
 
