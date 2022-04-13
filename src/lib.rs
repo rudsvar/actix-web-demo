@@ -7,20 +7,19 @@
 
 //! A demo web service implemented with actix web.
 
-use crate::api::{
+use actix_web::{dev::Server, web, App, HttpServer};
+use service::user::user_api::{get_user, list_users, post_user};
+use service::{
+    account::{deposit, get_account, post_account, transfer, withdraw},
     auth::{login, verify},
     client_context::client_context,
     health_check::health_check,
 };
-use actix_web::{dev::Server, web, App, HttpServer};
-use api::accounts::{deposit, get_account, post_account, transfer, withdraw};
-use service::user::user_api::{get_user, list_users, post_user};
 use sqlx::PgPool;
 use std::io;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
-pub mod api;
 pub mod configuration;
 pub mod error;
 pub mod middleware;

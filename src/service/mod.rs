@@ -4,4 +4,8 @@
 //! integration with external services or the database,
 //! and the API implementations themselves.
 
+pub mod account;
+pub mod auth;
+pub mod client_context;
+pub mod health_check;
 pub mod user;
