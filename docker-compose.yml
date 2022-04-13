@@ -1,6 +1,9 @@
 version: '3'
 
 services:
+  actix-web-demo:
+    build:
+      dockerfile: Dockerfile
   postgres:
     image: postgres:14
     ports:
