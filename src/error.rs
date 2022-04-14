@@ -1,12 +1,12 @@
 //! Application wide errors.
 
-use actix_http::StatusCode;
+use actix_http::{body::BoxBody, StatusCode};
 use actix_web::ResponseError;
 use thiserror::Error;
 
 /// A general application error.
 #[derive(Debug, Error)]
-pub enum ApplicationError {
+pub enum ServiceError {
     /// A logical error.
     #[error("business error: {0}")]
     BusinessError(#[from] BusinessError),
@@ -15,13 +15,18 @@ pub enum ApplicationError {
     DbError(#[from] DbError),
 }
 
-impl ResponseError for ApplicationError {
+impl ResponseError for ServiceError {
     fn status_code(&self) -> actix_http::StatusCode {
         tracing::error!("{}", self);
         match self {
-            ApplicationError::BusinessError(_) => todo!(),
-            ApplicationError::DbError(error) => error.status_code(),
+            ServiceError::BusinessError(error) => error.status_code(),
+            ServiceError::DbError(error) => error.status_code(),
         }
+    }
+
+    fn error_response(&self) -> actix_web::HttpResponse<BoxBody> {
+        let res = actix_web::HttpResponse::new(self.status_code());
+        res.set_body(BoxBody::new(format!("{}", &self)))
     }
 }
 
@@ -75,7 +80,7 @@ impl From<sqlx::Error> for DbError {
         match error {
             sqlx::Error::RowNotFound => DbError::NotFound,
             sqlx::Error::Io(_) => DbError::ConnectionError,
-            _ => DbError::ConnectionError,
+            e => DbError::Other(e),
         }
     }
 }
