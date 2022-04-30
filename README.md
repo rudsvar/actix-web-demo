@@ -22,3 +22,10 @@ To customize the log level, use the `RUST_LOG` environment variable.
 
 - Generate documentation: `cargo doc`, open it in a browser with `--open`.
 - Learn more about SQLx and migrations: `sqlx -h`
+
+# TODO
+
+- Add authorization with actix-web-grants https://github.com/DDtKey/actix-web-grants
+  Find some operation that only administrators should have.
+  Make sure users can only send from their own accounts.
+- Clean up in general.
