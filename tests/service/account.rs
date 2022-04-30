@@ -108,7 +108,7 @@ async fn deposit_increases_balance() {
         .unwrap();
 
     assert_eq!(
-        old_account.balance() + deposit_amount as i32,
+        old_account.balance() + deposit_amount as i64,
         new_account.balance()
     );
 }
@@ -153,7 +153,7 @@ async fn withdraw_decreases_balance() {
         .unwrap();
 
     assert_eq!(
-        old_account.balance() - withdrawal_amount,
+        old_account.balance() - withdrawal_amount as i64,
         new_account.balance()
     );
 }

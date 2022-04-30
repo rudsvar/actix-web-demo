@@ -36,7 +36,7 @@ pub struct Account {
     /// The name of the account.
     pub name: String,
     /// The current balance of the account.
-    pub balance: i32,
+    pub balance: i64,
     /// The owner of the account.
     pub owner_id: i32,
 }
@@ -44,7 +44,7 @@ pub struct Account {
 impl Account {
     /// Creates a new account.
     #[must_use]
-    pub fn new(id: i32, name: String, balance: i32, owner_id: i32) -> Self {
+    pub fn new(id: i32, name: String, balance: i64, owner_id: i32) -> Self {
         Self {
             id,
             name,
@@ -67,7 +67,7 @@ impl Account {
 
     /// Get the account's balance.
     #[must_use]
-    pub fn balance(&self) -> i32 {
+    pub fn balance(&self) -> i64 {
         self.balance
     }
 
@@ -83,9 +83,12 @@ pub async fn post_account(db: Data<DbPool>, new_account: Json<NewAccount>) -> Se
     // Store in db
     let account = sqlx::query_as!(
         Account,
-        r#"INSERT INTO accounts (name, balance, owner_id) VALUES ($1, $2, $3) RETURNING *"#,
+        r#"
+        INSERT INTO accounts (name, balance, owner_id)
+        VALUES ($1, $2, $3)
+        RETURNING *"#,
         new_account.name,
-        0i32,
+        0i64,
         new_account.owner_id
     )
     .fetch_one(db.get_ref())
@@ -192,7 +195,7 @@ pub async fn withdraw(
         .await
         .map_err(DbError::from)?;
 
-    if old_account.balance < withdrawal.amount {
+    if old_account.balance < withdrawal.amount as i64 {
         return Ok(HttpResponse::BadRequest().json(format!(
             "Balance is too low, had {} but required {}",
             old_account.balance, withdrawal.amount
@@ -202,7 +205,7 @@ pub async fn withdraw(
     // Store in db
     sqlx::query!(
         "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
-        withdrawal.amount,
+        withdrawal.amount as i64,
         id
     )
     .execute(&mut tx)
@@ -222,7 +225,7 @@ pub struct NewTransfer {
     /// The account to send money to.
     pub to_account: i32,
     /// The amount of money.
-    pub amount: i32,
+    pub amount: u32,
 }
 
 /// A stored transfer between accounts.
@@ -235,7 +238,7 @@ pub struct Transfer {
     /// The account to send money to.
     pub to_account: i32,
     /// The amount of money.
-    pub amount: i32,
+    pub amount: i64,
     /// A timestamp for the transaction.
     pub created_at: DateTime<Utc>,
 }
@@ -254,7 +257,7 @@ pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> Serv
         "#,
         new_transfer.from_account,
         new_transfer.to_account,
-        new_transfer.amount,
+        new_transfer.amount as i64,
     )
     .fetch_one(&mut tx)
     .await
