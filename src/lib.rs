@@ -7,7 +7,12 @@
 
 //! A demo web service implemented with actix web.
 
+use actix_http::header::HeaderValue;
+use actix_web::dev::ServiceRequest;
 use actix_web::{dev::Server, web, App, HttpServer};
+use actix_web::{Error, HttpResponse};
+use actix_web_grants::proc_macro::has_permissions;
+use actix_web_grants::GrantsMiddleware;
 use service::user::user_api::{get_user, list_users, post_user};
 use service::{
     account::{deposit, get_account, post_account, transfer, withdraw},
@@ -40,6 +45,7 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             // Middleware to apply to all requests
             .wrap(TracingLogger::default())
             .wrap(middleware::ResponseAppender)
+            .wrap(GrantsMiddleware::with_extractor(extract))
             // Health check
             .service(health_check)
             .service(
@@ -58,8 +64,37 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             )
             // Other
             .service(client_context)
+            // Secure endpoints
+            .route("/user", web::get().to(user))
+            .route("/admin", web::get().to(admin))
     })
     .listen(listener)?
     .run();
     Ok(server)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Role {
+    Admin,
+    User,
+}
+
+async fn extract(req: &ServiceRequest) -> Result<Vec<Role>, Error> {
+    let actual_header = req.headers().get("Authorization");
+    let admin_header = HeaderValue::from_str("password123").unwrap();
+    if actual_header == Some(&admin_header) {
+        Ok(vec![Role::Admin, Role::User])
+    } else {
+        Ok(vec![Role::User])
+    }
+}
+
+#[has_permissions("Role::User", type = "Role")]
+async fn user() -> HttpResponse {
+    HttpResponse::Ok().body("Hello user!".to_string())
+}
+
+#[has_permissions("Role::Admin", type = "Role")]
+async fn admin() -> HttpResponse {
+    HttpResponse::Ok().body("Hello admin!".to_string())
 }

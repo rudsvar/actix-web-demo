@@ -9,13 +9,15 @@ edition = "2021"
 actix-web = "4.0"
 actix-http = "3.0"
 actix-web-httpauth = "0.6.0-beta.6"
+actix-web-grants = "3.0.0"
+
 tokio = "1.14.0"
 serde = "1.0.130"
 serde_json = "1.0.78"
-config = "0.11.0"
+config = "0.13.1"
 r2d2 = "0.8.9"
 r2d2_postgres = "0.18.1"
-uuid = { version =  "0.8.2", features = ["v4", "serde"] }
+uuid = { version =  "1.0.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 thiserror = "1.0.30"
 
@@ -28,7 +30,7 @@ tracing-actix-web = "0.5.0-beta.6"
 
 derive_more = "0.99.17"
 futures = "0.3.19"
-bcrypt = "0.10.1"
+bcrypt = "0.12.1"
 jsonwebtoken = "8.0.1"
 base64 = "0.13.0"
 console-subscriber = "0.1.3"
