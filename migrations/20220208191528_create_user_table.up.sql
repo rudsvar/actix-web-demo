@@ -6,5 +6,5 @@ CREATE TABLE users (
 );
 SELECT setval('users_id_seq', 999);
 
-INSERT INTO users (id, name, password) VALUES (1, 'foo', 'abc');
-INSERT INTO users (id, name, password) VALUES (2, 'bar', '123');
+INSERT INTO users (id, name, password) VALUES (1, 'user', 'user');
+INSERT INTO users (id, name, password) VALUES (2, 'admin', 'admin');
