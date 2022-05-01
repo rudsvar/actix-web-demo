@@ -1,13 +1,9 @@
 //! A service that can receive user information and validate it.
 
 use actix_http::{header::Header, StatusCode};
-use actix_web::{
-    error::InternalError,
-    web::{self, Data},
-    Error, FromRequest, HttpResponse,
-};
+use actix_web::{error::InternalError, web::Data, Error, FromRequest, HttpResponse};
 use actix_web_httpauth::{
-    extractors::basic::BasicAuth,
+    extractors::{basic::BasicAuth, bearer::BearerAuth},
     headers::authorization::{Authorization, Bearer},
 };
 use chrono::{Duration, Utc};
@@ -101,10 +97,11 @@ pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> AppResponse {
     Ok(HttpResponse::Created().body(token))
 }
 
-#[actix_web::post("/verify")]
-pub async fn verify(token: web::Json<String>) -> AppResponse {
-    tracing::debug!("Token {}", token);
-    let claims = decode_jwt(token.as_str())?;
+#[actix_web::get("/verify")]
+pub async fn verify(auth: BearerAuth) -> AppResponse {
+    let token = auth.token();
+    tracing::debug!("Got token {}", token);
+    let claims = decode_jwt(token)?;
     tracing::debug!("Got claims {:?}", claims);
     Ok(HttpResponse::Ok().json(claims))
 }
