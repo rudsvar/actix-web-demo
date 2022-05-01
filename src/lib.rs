@@ -7,7 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
-use crate::middleware::security::Role;
+use crate::security::Role;
 use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
@@ -15,9 +15,9 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use service::user::user_api::{get_user, list_users, post_user};
 use service::{
     account::{deposit, get_account, post_account, transfer, withdraw},
-    auth::{login, verify},
     client_context::client_context,
     health_check::health_check,
+    token::{login, verify},
 };
 use sqlx::PgPool;
 use std::io;
@@ -27,6 +27,7 @@ use tracing_actix_web::TracingLogger;
 pub mod configuration;
 pub mod error;
 pub mod middleware;
+pub mod security;
 pub mod service;
 pub mod telemetry;
 pub mod validated;
@@ -38,7 +39,7 @@ pub type DbPool = PgPool;
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(middleware::security::validator);
+        let auth = HttpAuthentication::bearer(security::validator);
         App::new()
             // Database pool
             .app_data(pool.clone())

@@ -1,22 +1,21 @@
-//! A service that can receive user information and validate it.
+//! Types and functions for setting up application security.
 
+use crate::{
+    error::{AppError, BusinessError},
+    service::user::user_db,
+    DbPool,
+};
 use actix_http::{header::Header, StatusCode};
-use actix_web::{error::InternalError, web::Data, Error, FromRequest, HttpResponse};
+use actix_web::{dev::ServiceRequest, error::InternalError, Error, FromRequest};
+use actix_web_grants::permissions::AttachPermissions;
 use actix_web_httpauth::{
-    extractors::{basic::BasicAuth, bearer::BearerAuth},
+    extractors::bearer::BearerAuth,
     headers::authorization::{Authorization, Bearer},
 };
 use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    error::{AppError, BusinessError},
-    middleware::security::Role,
-    service::{user::user_db, AppResponse},
-    DbPool,
-};
 
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
@@ -80,30 +79,27 @@ impl Claims {
     }
 }
 
-#[actix_web::post("/login")]
-pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> AppResponse {
-    tracing::debug!("Logging in user {}", credentials.user_id());
-
-    // Load user information
-    let username = credentials.user_id();
-    let password = credentials
-        .password()
-        .ok_or(BusinessError::AuthenticationError)?;
-
-    let token = encode_jwt(pool.get_ref(), username, password).await?;
-
-    tracing::info!("Sent jwt to: {}", username);
-
-    Ok(HttpResponse::Created().body(token))
+/// The possible roles used in the application.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type, Serialize, Deserialize)]
+#[sqlx(type_name = "role_name")]
+pub enum Role {
+    /// User with access to their own data.
+    User,
+    /// Administrator with all privileges.
+    Admin,
 }
 
-#[actix_web::get("/verify")]
-pub async fn verify(auth: BearerAuth) -> AppResponse {
-    let token = auth.token();
-    tracing::debug!("Got token {}", token);
-    let claims = decode_jwt(token)?;
-    tracing::debug!("Got claims {:?}", claims);
-    Ok(HttpResponse::Ok().json(claims))
+/// Validates a request
+pub async fn validator(
+    req: ServiceRequest,
+    credentials: BearerAuth,
+) -> Result<ServiceRequest, Error> {
+    tracing::info!("Entering validator");
+    let token = credentials.token();
+    if let Ok(claims) = decode_jwt(token) {
+        req.attach(claims.roles().to_vec())
+    }
+    Ok(req)
 }
 
 /// Create a jwt for the provided user.

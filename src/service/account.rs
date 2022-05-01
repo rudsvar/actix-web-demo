@@ -2,7 +2,7 @@
 
 use crate::{
     error::{BusinessError, DbError},
-    service::AppResponse,
+    service::AppResult,
     DbPool,
 };
 use actix_web::{
@@ -79,7 +79,10 @@ impl Account {
 }
 
 #[actix_web::post("/accounts")]
-pub async fn post_account(db: Data<DbPool>, new_account: Json<NewAccount>) -> AppResponse {
+pub async fn post_account(
+    db: Data<DbPool>,
+    new_account: Json<NewAccount>,
+) -> AppResult<HttpResponse> {
     // Store in db
     let account = sqlx::query_as!(
         Account,
@@ -99,7 +102,7 @@ pub async fn post_account(db: Data<DbPool>, new_account: Json<NewAccount>) -> Ap
 }
 
 #[actix_web::get("/accounts/{id}")]
-pub async fn get_account(db: Data<DbPool>, id: Path<i32>) -> AppResponse {
+pub async fn get_account(db: Data<DbPool>, id: Path<i32>) -> AppResult<HttpResponse> {
     let account = sqlx::query_as!(
         Account,
         r#"SELECT * FROM accounts WHERE id = $1"#,
@@ -139,7 +142,11 @@ where
 }
 
 #[actix_web::post("/accounts/{id}/deposits")]
-pub async fn deposit(db: Data<DbPool>, id: Path<i32>, deposit: Json<Deposit>) -> AppResponse {
+pub async fn deposit(
+    db: Data<DbPool>,
+    id: Path<i32>,
+    deposit: Json<Deposit>,
+) -> AppResult<HttpResponse> {
     let id = id.into_inner();
 
     validate(
@@ -185,7 +192,7 @@ pub async fn withdraw(
     db: Data<DbPool>,
     id: Path<i32>,
     withdrawal: Json<Withdrawal>,
-) -> AppResponse {
+) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
     let id = id.into_inner();
 
@@ -244,7 +251,10 @@ pub struct Transfer {
 }
 
 #[actix_web::post("/transfers")]
-pub async fn transfer(db: Data<DbPool>, new_transfer: Json<NewTransfer>) -> AppResponse {
+pub async fn transfer(
+    db: Data<DbPool>,
+    new_transfer: Json<NewTransfer>,
+) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
 
     // Store transaction
