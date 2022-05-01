@@ -13,18 +13,18 @@ use crate::{service::user::user_db, DbPool};
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
 #[derive(Copy, Clone, Debug)]
-pub struct BasicAuth {
+pub struct AuthenticatedUser {
     id: i32,
 }
 
-impl BasicAuth {
+impl AuthenticatedUser {
     /// Returns the id of the authenticated user.
     pub fn id(&self) -> &i32 {
         &self.id
     }
 }
 
-impl FromRequest for BasicAuth {
+impl FromRequest for AuthenticatedUser {
     type Error = Error;
     type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
 
@@ -40,8 +40,8 @@ impl FromRequest for BasicAuth {
             .boxed_local();
         }
         let auth = auth.unwrap();
-        let id = auth.as_ref().user_id();
-        let password = auth.as_ref().password().unwrap();
+        let username = auth.as_ref().user_id().to_string();
+        let password = auth.as_ref().password().unwrap().to_string();
 
         // Get database connection
         let conn = match req.app_data::<web::Data<DbPool>>() {
@@ -58,18 +58,12 @@ impl FromRequest for BasicAuth {
             }
         };
 
-        let id: i32 = id.parse().unwrap();
-        let password = password.to_string();
-
         async move {
-            let is_valid_result = user_db::verify_password(&conn, &id, &password).await;
+            let is_valid_result = user_db::authenticate(&conn, &username, &password).await;
             match is_valid_result {
-                Ok(is_valid) => {
-                    if is_valid {
-                        Ok(BasicAuth { id })
-                    } else {
-                        Err(InternalError::new("Unauthorized", StatusCode::UNAUTHORIZED).into())
-                    }
+                Ok(Some(id)) => Ok(AuthenticatedUser { id }),
+                Ok(None) => {
+                    Err(InternalError::new("Unauthorized", StatusCode::UNAUTHORIZED).into())
                 }
                 Err(e) => {
                     Err(InternalError::new(e.to_string(), StatusCode::SERVICE_UNAVAILABLE).into())
@@ -88,7 +82,7 @@ pub struct Claims {
 }
 
 #[actix_web::post("/login")]
-pub async fn login(user: BasicAuth) -> HttpResponse {
+pub async fn login(user: AuthenticatedUser) -> HttpResponse {
     // Read secret from config
     let config = match crate::configuration::get_configuration() {
         Ok(c) => c,

@@ -1,9 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
-use actix_web_demo::service::{
-    client_context::ClientContext,
-    user::user_model::{NewUser, User},
-};
+use actix_web_demo::service::client_context::ClientContext;
 
 #[actix_rt::test]
 async fn health_check_works() {
@@ -47,25 +44,14 @@ async fn user_creation_to_token_verification() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    // Create new user
-    let user = NewUser {
-        name: "foo".to_string(),
-        password: "bar".to_string(),
-    };
-    let create_user_response = client
-        .post(format!("{}/api/users", &app.address()))
-        .json(&user)
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(StatusCode::CREATED, create_user_response.status());
+    let username = "user";
+    let password = Some("user");
 
     // Try to get token with wrong password
-    let user: User = create_user_response.json().await.unwrap();
     {
         let response = client
-            .post(format!("{}/api/login", &app.address()))
-            .basic_auth(&user.id.to_string(), Some("baz"))
+            .post(format!("{}/login", &app.address()))
+            .basic_auth(username, Some("wrongpassword"))
             .send()
             .await
             .unwrap();
@@ -74,8 +60,8 @@ async fn user_creation_to_token_verification() {
 
     // Get token
     let response = client
-        .post(format!("{}/api/login", &app.address()))
-        .basic_auth(&user.id.to_string(), Some("bar"))
+        .post(format!("{}/login", &app.address()))
+        .basic_auth(username, password)
         .send()
         .await
         .unwrap();
@@ -85,7 +71,7 @@ async fn user_creation_to_token_verification() {
     let token: String = response.text().await.unwrap();
     {
         let response = client
-            .post(format!("{}/api/verify", &app.address()))
+            .post(format!("{}/verify", &app.address()))
             .json(&format!("{}kjqw12", token))
             .send()
             .await
@@ -95,7 +81,7 @@ async fn user_creation_to_token_verification() {
 
     // Verify token
     let response = client
-        .post(format!("{}/api/verify", &app.address()))
+        .post(format!("{}/verify", &app.address()))
         .json(&token)
         .send()
         .await

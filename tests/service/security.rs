@@ -9,7 +9,8 @@ async fn user_can_access_user_endpoint() {
 
     // Act
     let response = client
-        .get(format!("{}/user", app.address()))
+        .get(format!("{}/api/user", app.address()))
+        .basic_auth("user", Some("user"))
         .send()
         .await
         .expect("failed to execute request");
@@ -26,7 +27,8 @@ async fn user_cannot_access_admin_endpoint() {
 
     // Act
     let response = client
-        .get(format!("{}/admin", app.address()))
+        .get(format!("{}/api/admin", app.address()))
+        .basic_auth("user", Some("user"))
         .send()
         .await
         .expect("failed to execute request");
@@ -43,8 +45,8 @@ async fn admin_can_access_admin() {
 
     // Act
     let response = client
-        .get(format!("{}/admin", app.address()))
-        .header("Authorization", "password123")
+        .get(format!("{}/api/admin", app.address()))
+        .basic_auth("admin", Some("admin"))
         .send()
         .await
         .expect("failed to execute request");
@@ -61,8 +63,8 @@ async fn admin_can_access_user() {
 
     // Act
     let response = client
-        .get(format!("{}/user", app.address()))
-        .header("Authorization", "password123")
+        .get(format!("{}/api/user", app.address()))
+        .basic_auth("admin", Some("admin"))
         .send()
         .await
         .expect("failed to execute request");

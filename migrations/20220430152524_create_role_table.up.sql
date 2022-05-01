@@ -1,11 +1,13 @@
+CREATE TYPE ROLE_NAME AS ENUM ('User', 'Admin');
+
 CREATE TABLE role (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
+    name ROLE_NAME NOT NULL
 );
 SELECT setval('role_id_seq', 999);
 
-INSERT INTO role VALUES (1, 'USER');
-INSERT INTO role VALUES (2, 'ADMIN');
+INSERT INTO role VALUES (1, 'User');
+INSERT INTO role VALUES (2, 'Admin');
 
 CREATE TABLE user_role (
     id SERIAL PRIMARY KEY,
