@@ -4,9 +4,10 @@ use crate::{service::user::user_db, DbPool};
 use actix_web::{dev::ServiceRequest, web::Data, Error};
 use actix_web_grants::permissions::AttachPermissions;
 use actix_web_httpauth::extractors::basic::BasicAuth;
+use serde::{Deserialize, Serialize};
 
 /// The possible roles used in the application.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type, Serialize, Deserialize)]
 #[sqlx(type_name = "role_name")]
 pub enum Role {
     /// Administrator with all privileges.

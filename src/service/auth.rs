@@ -1,14 +1,26 @@
 //! A service that can receive user information and validate it.
 
 use actix_http::{header::Header, StatusCode};
-use actix_web::{error::InternalError, web, Error, FromRequest, HttpResponse};
-use actix_web_httpauth::headers::authorization::{Authorization, Basic};
+use actix_web::{
+    error::InternalError,
+    web::{self, Data},
+    Error, FromRequest, HttpResponse,
+};
+use actix_web_httpauth::{
+    extractors::basic::BasicAuth,
+    headers::authorization::{Authorization, Basic},
+};
 use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::{service::user::user_db, DbPool};
+use crate::{
+    error::BusinessError,
+    middleware::security::Role,
+    service::{user::user_db, ServiceResponse},
+    DbPool,
+};
 
 /// A guarantee that the credentials of this user have been verified.
 /// This type can only be created from a request with the appropriate credentials.
@@ -75,29 +87,41 @@ impl FromRequest for AuthenticatedUser {
 }
 
 /// The data stored in the jwt
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Claims {
     id: i32,
     exp: usize,
+    roles: Vec<Role>,
 }
 
 #[actix_web::post("/login")]
-pub async fn login(user: AuthenticatedUser) -> HttpResponse {
-    // Read secret from config
-    let config = match crate::configuration::get_configuration() {
-        Ok(c) => c,
-        Err(e) => {
-            return HttpResponse::InternalServerError().body(e.to_string());
-        }
-    };
+pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> ServiceResponse {
+    tracing::debug!("Logging in user {}", credentials.user_id());
+
+    // Load user information
+    let password = credentials
+        .password()
+        .ok_or(BusinessError::AuthenticationError)?;
+
+    // Authenticate user
+    let user_id = user_db::authenticate(pool.get_ref(), credentials.user_id(), password)
+        .await?
+        .ok_or(BusinessError::AuthenticationError)?;
+
+    // Fetch user roles
+    let roles = user_db::get_roles(pool.get_ref(), credentials.user_id()).await?;
 
     // Set claims
-    let in_one_minute = Utc::now() + Duration::seconds(60);
+    let in_one_minute = Utc::now() + Duration::minutes(1);
     let exp = in_one_minute.naive_utc().timestamp();
     let claims = Claims {
-        id: *user.id(),
+        id: user_id,
         exp: exp as usize,
+        roles,
     };
+
+    // Read secret from config
+    let config = crate::configuration::get_configuration()?;
 
     // Create jwt
     let token = jsonwebtoken::encode(
@@ -107,9 +131,9 @@ pub async fn login(user: AuthenticatedUser) -> HttpResponse {
     )
     .unwrap();
 
-    tracing::info!("Sent jwt to: {}", user.id);
+    tracing::info!("Sent jwt to: {}", user_id);
 
-    HttpResponse::Created().body(token)
+    Ok(HttpResponse::Created().body(token))
 }
 
 #[actix_web::post("/verify")]

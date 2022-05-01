@@ -2,6 +2,7 @@
 
 use actix_http::{body::BoxBody, StatusCode};
 use actix_web::ResponseError;
+use config::ConfigError;
 use thiserror::Error;
 
 /// A general application error.
@@ -13,6 +14,9 @@ pub enum ServiceError {
     /// An external dependency failed.
     #[error("database error: {0}")]
     DbError(#[from] DbError),
+    /// Could not load configuration.
+    #[error("config error: {0}")]
+    ConfigError(#[from] ConfigError),
 }
 
 impl ResponseError for ServiceError {
@@ -21,6 +25,7 @@ impl ResponseError for ServiceError {
         match self {
             ServiceError::BusinessError(error) => error.status_code(),
             ServiceError::DbError(error) => error.status_code(),
+            ServiceError::ConfigError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -36,12 +41,16 @@ pub enum BusinessError {
     /// A validation failed.
     #[error("{0}")]
     ValidationError(String),
+    /// Error during authentication.
+    #[error("authentication error")]
+    AuthenticationError,
 }
 
 impl ResponseError for BusinessError {
     fn status_code(&self) -> StatusCode {
         match self {
             BusinessError::ValidationError(_) => StatusCode::BAD_REQUEST,
+            BusinessError::AuthenticationError => StatusCode::UNAUTHORIZED,
         }
     }
 }
