@@ -188,3 +188,30 @@ async fn withdrawing_too_much_fails() {
         .unwrap();
     assert_eq!(StatusCode::BAD_REQUEST, response.status());
 }
+
+#[actix_web::test]
+async fn user_cannot_access_other_account() {
+    let app = spawn_test_app().await;
+    let client = reqwest::Client::new();
+    let account_id = 3;
+
+    // Get admin's account as user
+    let user_token = super::authenticate(&app, "user", "user").await;
+    let response = client
+        .get(format!("{}/api/accounts/{}", app.address(), account_id))
+        .bearer_auth(user_token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::NOT_FOUND, response.status());
+
+    // Get admin's account as admin
+    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let response = client
+        .get(format!("{}/api/accounts/{}", app.address(), account_id))
+        .bearer_auth(admin_token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::OK, response.status());
+}

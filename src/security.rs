@@ -26,8 +26,8 @@ pub struct AuthenticatedUser {
 
 impl AuthenticatedUser {
     /// Returns the id of the authenticated user.
-    pub fn id(&self) -> &i32 {
-        &self.id
+    pub fn id(&self) -> i32 {
+        self.id
     }
 }
 

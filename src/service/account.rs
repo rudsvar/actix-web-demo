@@ -2,6 +2,7 @@
 
 use crate::{
     error::{BusinessError, DbError},
+    security::AuthenticatedUser,
     service::AppResult,
     DbPool,
 };
@@ -102,11 +103,16 @@ pub async fn post_account(
 }
 
 #[actix_web::get("/accounts/{id}")]
-pub async fn get_account(db: Data<DbPool>, id: Path<i32>) -> AppResult<HttpResponse> {
+pub async fn get_account(
+    db: Data<DbPool>,
+    user: AuthenticatedUser,
+    account_id: Path<i32>,
+) -> AppResult<HttpResponse> {
     let account = sqlx::query_as!(
         Account,
-        r#"SELECT * FROM accounts WHERE id = $1"#,
-        id.into_inner()
+        r#"SELECT * FROM accounts WHERE id = $1 AND owner_id = $2"#,
+        account_id.into_inner(),
+        user.id()
     )
     .fetch_one(db.get_ref())
     .await
