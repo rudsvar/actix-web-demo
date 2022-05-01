@@ -70,8 +70,8 @@ async fn user_creation_to_token_verification() {
     // Fail with invalid token
     {
         let response = client
-            .post(format!("{}/verify", &app.address()))
-            .json("kjqw12")
+            .get(format!("{}/verify", &app.address()))
+            .bearer_auth("kjqw12")
             .send()
             .await
             .unwrap();
@@ -81,8 +81,8 @@ async fn user_creation_to_token_verification() {
     // Fail with expired token
     {
         let response = client
-            .post(format!("{}/verify", &app.address()))
-            .json("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwiZXhwIjoxNjUxNDE4MDE3LCJyb2xlcyI6WyJVc2VyIl19.6dEgUhl2-rRNBiQRjiZ_4YDOFv2uHbAkolPlAk0v_TA")
+            .get(format!("{}/verify", &app.address()))
+            .bearer_auth("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwiZXhwIjoxNjUxNDE4MDE3LCJyb2xlcyI6WyJVc2VyIl19.6dEgUhl2-rRNBiQRjiZ_4YDOFv2uHbAkolPlAk0v_TA")
             .send()
             .await
             .unwrap();
@@ -92,8 +92,8 @@ async fn user_creation_to_token_verification() {
     let token: String = response.text().await.unwrap();
     // Verify token
     let response = client
-        .post(format!("{}/verify", &app.address()))
-        .json(&token)
+        .get(format!("{}/verify", &app.address()))
+        .bearer_auth(&token)
         .send()
         .await
         .unwrap();
