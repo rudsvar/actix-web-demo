@@ -1,3 +1,4 @@
+use super::authenticate;
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
 
@@ -6,11 +7,12 @@ async fn user_can_access_user_endpoint() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
+    let token = authenticate(&app, "user", "user").await;
 
     // Act
     let response = client
         .get(format!("{}/api/user", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth(token)
         .send()
         .await
         .expect("failed to execute request");
@@ -24,11 +26,12 @@ async fn user_cannot_access_admin_endpoint() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
+    let token = authenticate(&app, "user", "user").await;
 
     // Act
     let response = client
         .get(format!("{}/api/admin", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth(token)
         .send()
         .await
         .expect("failed to execute request");
@@ -42,11 +45,12 @@ async fn admin_can_access_admin() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
+    let token = authenticate(&app, "admin", "admin").await;
 
     // Act
     let response = client
         .get(format!("{}/api/admin", app.address()))
-        .basic_auth("admin", Some("admin"))
+        .bearer_auth(token)
         .send()
         .await
         .expect("failed to execute request");
@@ -60,11 +64,12 @@ async fn admin_can_access_user() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
+    let token = authenticate(&app, "admin", "admin").await;
 
     // Act
     let response = client
         .get(format!("{}/api/user", app.address()))
-        .basic_auth("admin", Some("admin"))
+        .bearer_auth(token)
         .send()
         .await
         .expect("failed to execute request");

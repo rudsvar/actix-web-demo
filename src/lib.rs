@@ -38,7 +38,7 @@ pub type DbPool = PgPool;
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::basic(middleware::security::validator);
+        let bearer_auth = HttpAuthentication::bearer(middleware::security::validator);
         App::new()
             // Database pool
             .app_data(pool.clone())
@@ -52,7 +52,7 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             .service(
                 // Subscription
                 web::scope("/api")
-                    .wrap(auth)
+                    .wrap(bearer_auth)
                     .service(post_user)
                     .service(get_user)
                     .service(list_users)

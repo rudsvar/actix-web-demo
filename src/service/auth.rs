@@ -8,7 +8,7 @@ use actix_web::{
 };
 use actix_web_httpauth::{
     extractors::basic::BasicAuth,
-    headers::authorization::{Authorization, Basic},
+    headers::authorization::{Authorization, Bearer},
 };
 use chrono::{Duration, Utc};
 use futures::{future, FutureExt};
@@ -41,7 +41,7 @@ impl FromRequest for AuthenticatedUser {
     type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
 
     fn from_request(req: &actix_web::HttpRequest, _: &mut actix_http::Payload) -> Self::Future {
-        let auth = Authorization::<Basic>::parse(req);
+        let auth = Authorization::<Bearer>::parse(req);
         if let Err(e) = auth {
             return async move {
                 Err(
@@ -52,37 +52,20 @@ impl FromRequest for AuthenticatedUser {
             .boxed_local();
         }
         let auth = auth.unwrap();
-        let username = auth.as_ref().user_id().to_string();
-        let password = auth.as_ref().password().unwrap().to_string();
-
-        // Get database connection
-        let conn = match req.app_data::<web::Data<DbPool>>() {
-            Some(conn) => conn.get_ref().clone(),
-            None => {
-                return async {
-                    Err(InternalError::new(
-                        "Can't connect to database",
-                        StatusCode::SERVICE_UNAVAILABLE,
-                    )
-                    .into())
-                }
-                .boxed_local()
+        let token = auth.as_ref().token().to_string();
+        let claims = decode_jwt(&token);
+        if let Err(e) = claims {
+            return async move {
+                Err(
+                    InternalError::new(format!("Can't authorize: {}", e), StatusCode::UNAUTHORIZED)
+                        .into(),
+                )
             }
-        };
-
-        async move {
-            let is_valid_result = user_db::authenticate(&conn, &username, &password).await;
-            match is_valid_result {
-                Ok(Some(id)) => Ok(AuthenticatedUser { id }),
-                Ok(None) => {
-                    Err(InternalError::new("Unauthorized", StatusCode::UNAUTHORIZED).into())
-                }
-                Err(e) => {
-                    Err(InternalError::new(e.to_string(), StatusCode::SERVICE_UNAVAILABLE).into())
-                }
-            }
+            .boxed_local();
         }
-        .boxed_local()
+        let claims = claims.unwrap();
+
+        async move { Ok(AuthenticatedUser { id: claims.id }) }.boxed_local()
     }
 }
 
@@ -92,6 +75,13 @@ pub struct Claims {
     id: i32,
     exp: usize,
     roles: Vec<Role>,
+}
+
+impl Claims {
+    /// Returns the roles stored in the claim.
+    pub fn roles(&self) -> &[Role] {
+        &self.roles
+    }
 }
 
 #[actix_web::post("/login")]

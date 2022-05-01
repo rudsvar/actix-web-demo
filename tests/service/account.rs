@@ -12,7 +12,7 @@ async fn post_account_gives_201() {
     // Act
     let response = client
         .post(format!("{}/api/accounts", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .json(&new_account)
         .send()
         .await
@@ -41,7 +41,7 @@ async fn get_account_gives_200() {
     // Read response
     let response = client
         .get(format!("{}/api/accounts/4", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap();
@@ -63,7 +63,7 @@ async fn get_missing_account_gives_404() {
 
     let response = client
         .get(format!("{}/api/accounts/0", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap();
@@ -82,7 +82,7 @@ async fn deposit_increases_balance() {
     // Check old account status
     let old_account: Account = client
         .get(format!("{}/api/accounts/4", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap()
@@ -95,7 +95,7 @@ async fn deposit_increases_balance() {
     let deposit = Deposit::new(deposit_amount);
     let response = client
         .post(format!("{}/api/accounts/4/deposits", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .json(&deposit)
         .send()
         .await
@@ -105,7 +105,7 @@ async fn deposit_increases_balance() {
 
     let new_account: Account = client
         .get(format!("{}/api/accounts/4", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap()
@@ -131,7 +131,7 @@ async fn withdraw_decreases_balance() {
     // Check old account status
     let old_account: Account = client
         .get(format!("{}/api/accounts/4", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap()
@@ -144,7 +144,7 @@ async fn withdraw_decreases_balance() {
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
         .post(format!("{}/api/accounts/4/withdrawals", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .json(&withdrawal)
         .send()
         .await
@@ -153,7 +153,7 @@ async fn withdraw_decreases_balance() {
 
     let new_account: Account = client
         .get(format!("{}/api/accounts/4", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .send()
         .await
         .unwrap()
@@ -181,7 +181,7 @@ async fn withdrawing_too_much_fails() {
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
         .post(format!("{}/api/accounts/4/withdrawals", app.address()))
-        .basic_auth("user", Some("user"))
+        .bearer_auth("invalid_token")
         .json(&withdrawal)
         .send()
         .await
