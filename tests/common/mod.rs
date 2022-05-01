@@ -1,5 +1,5 @@
 use actix_web_demo::{
-    configuration::{get_configuration, DatabaseSettings},
+    configuration::{load_configuration, DatabaseSettings},
     telemetry, DbPool,
 };
 use once_cell::sync::Lazy;
@@ -76,7 +76,7 @@ pub async fn spawn_test_app() -> TestApp {
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
 
-    let configuration = get_configuration().expect("Failed to read configuration");
+    let configuration = load_configuration().expect("Failed to read configuration");
     let db = test_db(configuration.database).await;
     let server = actix_web_demo::run_app(listener, db.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);

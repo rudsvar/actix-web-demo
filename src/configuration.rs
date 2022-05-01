@@ -1,5 +1,7 @@
 //! Structs and functions for reading application configuration from a file.
 
+use crate::error::AppError;
+
 /// Application settings.
 #[derive(Debug, serde:: Deserialize)]
 pub struct Settings {
@@ -27,20 +29,12 @@ pub struct DatabaseSettings {
 }
 
 /// Retrieve [`Settings`] from the default configuration file.
-pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    // Initialise our configuration reader
+pub fn load_configuration() -> Result<Settings, AppError> {
     let settings = config::Config::builder()
-        // Add configuration values from a file named `configuration`.
-        // It will look for any top-level file with an extension
-        // that `config` knows how to parse: yaml, json, etc.
         .add_source(config::File::with_name("configuration"))
-        .build()?;
-    // Try to convert the configuration values it read into
-    // our Settings type
-    settings.try_deserialize().map_err(|e| {
-        tracing::error!("{}", e);
-        e
-    })
+        .build()?
+        .try_deserialize()?;
+    Ok(settings)
 }
 
 impl DatabaseSettings {

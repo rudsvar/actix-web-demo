@@ -83,7 +83,7 @@ pub async fn authenticate(
 }
 
 /// Extract grants from the database.
-pub async fn get_roles(conn: impl PgExecutor<'_>, username: &str) -> Result<Vec<Role>, DbError> {
+pub async fn fetch_roles(conn: impl PgExecutor<'_>, username: &str) -> Result<Vec<Role>, DbError> {
     // Get roles from db
     let mut roles: Vec<Role> = sqlx::query!(
         r#"

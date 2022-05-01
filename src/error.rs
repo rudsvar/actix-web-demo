@@ -7,7 +7,7 @@ use thiserror::Error;
 
 /// A general application error.
 #[derive(Debug, Error)]
-pub enum ServiceError {
+pub enum AppError {
     /// A logical error.
     #[error("business error: {0}")]
     BusinessError(#[from] BusinessError),
@@ -19,13 +19,13 @@ pub enum ServiceError {
     ConfigError(#[from] ConfigError),
 }
 
-impl ResponseError for ServiceError {
+impl ResponseError for AppError {
     fn status_code(&self) -> actix_http::StatusCode {
         tracing::error!("{}", self);
         match self {
-            ServiceError::BusinessError(error) => error.status_code(),
-            ServiceError::DbError(error) => error.status_code(),
-            ServiceError::ConfigError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::BusinessError(error) => error.status_code(),
+            AppError::DbError(error) => error.status_code(),
+            AppError::ConfigError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 

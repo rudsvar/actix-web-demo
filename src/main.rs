@@ -1,4 +1,4 @@
-use actix_web_demo::{configuration::get_configuration, telemetry, DbPool};
+use actix_web_demo::{configuration::load_configuration, telemetry, DbPool};
 use std::net::TcpListener;
 
 #[actix_web::main]
@@ -7,7 +7,7 @@ async fn main() -> std::io::Result<()> {
         telemetry::get_subscriber("actix-web-demo".into(), "info".into(), std::io::stdout);
     telemetry::init_subscriber(subscriber);
 
-    let configuration = get_configuration().expect("could not read configuration");
+    let configuration = load_configuration().expect("could not read configuration");
 
     // Connect to db
     let connection_string = configuration.database.connection_string();

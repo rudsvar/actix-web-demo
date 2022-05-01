@@ -67,18 +67,29 @@ async fn user_creation_to_token_verification() {
         .unwrap();
     assert_eq!(StatusCode::CREATED, response.status());
 
-    // Fail with wrong token
-    let token: String = response.text().await.unwrap();
+    // Fail with invalid token
     {
         let response = client
             .post(format!("{}/verify", &app.address()))
-            .json(&format!("{}kjqw12", token))
+            .json("kjqw12")
             .send()
             .await
             .unwrap();
-        assert_eq!(StatusCode::FORBIDDEN, response.status());
+        assert_eq!(StatusCode::UNAUTHORIZED, response.status());
     }
 
+    // Fail with expired token
+    {
+        let response = client
+            .post(format!("{}/verify", &app.address()))
+            .json("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwiZXhwIjoxNjUxNDE4MDE3LCJyb2xlcyI6WyJVc2VyIl19.6dEgUhl2-rRNBiQRjiZ_4YDOFv2uHbAkolPlAk0v_TA")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(StatusCode::UNAUTHORIZED, response.status());
+    }
+
+    let token: String = response.text().await.unwrap();
     // Verify token
     let response = client
         .post(format!("{}/verify", &app.address()))

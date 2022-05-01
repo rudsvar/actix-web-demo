@@ -16,9 +16,9 @@ use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::BusinessError,
+    error::{AppError, BusinessError},
     middleware::security::Role,
-    service::{user::user_db, ServiceResponse},
+    service::{user::user_db, AppResponse},
     DbPool,
 };
 
@@ -95,21 +95,39 @@ pub struct Claims {
 }
 
 #[actix_web::post("/login")]
-pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> ServiceResponse {
+pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> AppResponse {
     tracing::debug!("Logging in user {}", credentials.user_id());
 
     // Load user information
+    let username = credentials.user_id();
     let password = credentials
         .password()
         .ok_or(BusinessError::AuthenticationError)?;
 
+    let token = encode_jwt(pool.get_ref(), username, password).await?;
+
+    tracing::info!("Sent jwt to: {}", username);
+
+    Ok(HttpResponse::Created().body(token))
+}
+
+#[actix_web::post("/verify")]
+pub async fn verify(token: web::Json<String>) -> AppResponse {
+    tracing::debug!("Token {}", token);
+    let claims = decode_jwt(token.as_str())?;
+    tracing::debug!("Got claims {:?}", claims);
+    Ok(HttpResponse::Ok().json(claims))
+}
+
+/// Create a jwt for the provided user.
+pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
     // Authenticate user
-    let user_id = user_db::authenticate(pool.get_ref(), credentials.user_id(), password)
+    let user_id = user_db::authenticate(conn, username, password)
         .await?
         .ok_or(BusinessError::AuthenticationError)?;
 
     // Fetch user roles
-    let roles = user_db::get_roles(pool.get_ref(), credentials.user_id()).await?;
+    let roles = user_db::fetch_roles(conn, username).await?;
 
     // Set claims
     let in_one_minute = Utc::now() + Duration::minutes(1);
@@ -121,7 +139,7 @@ pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> ServiceRespons
     };
 
     // Read secret from config
-    let config = crate::configuration::get_configuration()?;
+    let config = crate::configuration::load_configuration()?;
 
     // Create jwt
     let token = jsonwebtoken::encode(
@@ -131,32 +149,17 @@ pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> ServiceRespons
     )
     .unwrap();
 
-    tracing::info!("Sent jwt to: {}", user_id);
-
-    Ok(HttpResponse::Created().body(token))
+    Ok(token)
 }
 
-#[actix_web::post("/verify")]
-pub async fn verify(token: web::Json<String>) -> HttpResponse {
-    tracing::info!("Token {}", token);
-    let config = match crate::configuration::get_configuration() {
-        Ok(c) => c,
-        Err(e) => {
-            return HttpResponse::InternalServerError().body(e.to_string());
-        }
-    };
-
+/// Decode a jwt into its claims.
+pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
+    let config = crate::configuration::load_configuration()?;
     let decoded = jsonwebtoken::decode::<Claims>(
-        &token,
+        token,
         &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
         &Validation::default(),
-    );
-    match decoded {
-        Ok(token) => {
-            tracing::info!("Header {:?}", token.header);
-            tracing::info!("Claims {:?}", token.claims);
-            HttpResponse::Ok().body("Ok")
-        }
-        Err(e) => HttpResponse::Forbidden().body(format!("Forbidden: {}", e)),
-    }
+    )
+    .map_err(|_| BusinessError::AuthenticationError)?;
+    Ok(decoded.claims)
 }

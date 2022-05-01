@@ -24,7 +24,7 @@ pub async fn validator(
     tracing::info!("Entering validator");
     let pool = req.app_data::<Data<DbPool>>().unwrap();
     let username = credentials.user_id();
-    let roles = user_db::get_roles(pool.get_ref(), username).await.unwrap();
+    let roles = user_db::fetch_roles(pool.get_ref(), username).await.unwrap();
     req.attach(roles);
     Ok(req)
 }
