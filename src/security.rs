@@ -94,10 +94,13 @@ pub async fn validator(
     req: ServiceRequest,
     credentials: BearerAuth,
 ) -> Result<ServiceRequest, Error> {
-    tracing::info!("Entering validator");
+    tracing::debug!("Validating request");
     let token = credentials.token();
     if let Ok(claims) = decode_jwt(token) {
+        tracing::debug!("Decoded claims {:?}", claims);
         req.attach(claims.roles().to_vec())
+    } else {
+        tracing::debug!("No claims");
     }
     Ok(req)
 }

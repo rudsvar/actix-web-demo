@@ -1,5 +1,6 @@
 //! An API for creating and modifying accounts.
 
+use crate::security::Role;
 use crate::{
     error::{BusinessError, DbError},
     security::AuthenticatedUser,
@@ -10,6 +11,7 @@ use actix_web::{
     web::{Data, Json, Path},
     HttpResponse,
 };
+use actix_web_grants::{permissions::AuthDetails, proc_macro::has_roles};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -102,17 +104,25 @@ pub async fn post_account(
     Ok(HttpResponse::Created().json(account))
 }
 
-#[actix_web::get("/accounts/{id}")]
+#[actix_web::get("/users/{user_id}/accounts/{account_id}")]
+#[has_roles(
+    "Role::User",
+    type = "Role",
+    secure = "path_params.0 == user.id() || roles.has_role(&Role::Admin)"
+)]
 pub async fn get_account(
     db: Data<DbPool>,
     user: AuthenticatedUser,
-    account_id: Path<i32>,
+    roles: AuthDetails<Role>,
+    path_params: Path<(i32, i32)>,
 ) -> AppResult<HttpResponse> {
+    let (user_id, account_id) = path_params.into_inner();
+    tracing::debug!("Getting account");
     let account = sqlx::query_as!(
         Account,
         r#"SELECT * FROM accounts WHERE id = $1 AND owner_id = $2"#,
-        account_id.into_inner(),
-        user.id()
+        account_id,
+        user_id,
     )
     .fetch_one(db.get_ref())
     .await

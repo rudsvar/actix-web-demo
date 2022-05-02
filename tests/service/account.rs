@@ -39,9 +39,10 @@ async fn get_account_gives_200() {
     let client = reqwest::Client::new();
 
     // Read response
+    let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
-        .get(format!("{}/api/accounts/4", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .bearer_auth(user_token)
         .send()
         .await
         .unwrap();
@@ -78,11 +79,12 @@ async fn deposit_increases_balance() {
         .await
         .unwrap();
     let client = reqwest::Client::new();
+    let user_token = super::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/accounts/4", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .bearer_auth(&user_token)
         .send()
         .await
         .unwrap()
@@ -95,7 +97,7 @@ async fn deposit_increases_balance() {
     let deposit = Deposit::new(deposit_amount);
     let response = client
         .post(format!("{}/api/accounts/4/deposits", app.address()))
-        .bearer_auth("invalid_token")
+        .bearer_auth(&user_token)
         .json(&deposit)
         .send()
         .await
@@ -104,8 +106,8 @@ async fn deposit_increases_balance() {
     assert_eq!(StatusCode::CREATED, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/accounts/4", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .bearer_auth(&user_token)
         .send()
         .await
         .unwrap()
@@ -127,11 +129,12 @@ async fn withdraw_decreases_balance() {
         .await
         .unwrap();
     let client = reqwest::Client::new();
+    let user_token = super::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/accounts/4", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .bearer_auth(&user_token)
         .send()
         .await
         .unwrap()
@@ -144,7 +147,7 @@ async fn withdraw_decreases_balance() {
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
         .post(format!("{}/api/accounts/4/withdrawals", app.address()))
-        .bearer_auth("invalid_token")
+        .bearer_auth(&user_token)
         .json(&withdrawal)
         .send()
         .await
@@ -152,8 +155,8 @@ async fn withdraw_decreases_balance() {
     assert_eq!(StatusCode::CREATED, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/accounts/4", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .bearer_auth(&user_token)
         .send()
         .await
         .unwrap()
@@ -198,17 +201,25 @@ async fn user_cannot_access_other_account() {
     // Get admin's account as user
     let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
-        .get(format!("{}/api/accounts/{}", app.address(), account_id))
+        .get(format!(
+            "{}/api/users/2/accounts/{}",
+            app.address(),
+            account_id
+        ))
         .bearer_auth(user_token)
         .send()
         .await
         .unwrap();
-    assert_eq!(StatusCode::NOT_FOUND, response.status());
+    assert_eq!(StatusCode::FORBIDDEN, response.status());
 
     // Get admin's account as admin
     let admin_token = super::authenticate(&app, "admin", "admin").await;
     let response = client
-        .get(format!("{}/api/accounts/{}", app.address(), account_id))
+        .get(format!(
+            "{}/api/users/2/accounts/{}",
+            app.address(),
+            account_id
+        ))
         .bearer_auth(admin_token)
         .send()
         .await
