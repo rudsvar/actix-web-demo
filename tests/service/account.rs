@@ -196,30 +196,40 @@ async fn withdrawing_too_much_fails() {
 async fn user_cannot_access_other_account() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let account_id = 3;
 
-    // Get admin's account as user
+    // Get user's account as user
     let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
-        .get(format!(
-            "{}/api/users/2/accounts/{}",
-            app.address(),
-            account_id
-        ))
-        .bearer_auth(user_token)
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
+        .bearer_auth(&user_token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::OK, response.status());
+
+    // Get admin's account as user
+    let response = client
+        .get(format!("{}/api/users/2/accounts/3", app.address()))
+        .bearer_auth(&user_token)
         .send()
         .await
         .unwrap();
     assert_eq!(StatusCode::FORBIDDEN, response.status());
 
+    // Get user's account as admin
+    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let response = client
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
+        .bearer_auth(&admin_token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(StatusCode::OK, response.status());
+
     // Get admin's account as admin
     let admin_token = super::authenticate(&app, "admin", "admin").await;
     let response = client
-        .get(format!(
-            "{}/api/users/2/accounts/{}",
-            app.address(),
-            account_id
-        ))
+        .get(format!("{}/api/users/2/accounts/3", app.address()))
         .bearer_auth(admin_token)
         .send()
         .await
