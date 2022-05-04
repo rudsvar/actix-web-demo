@@ -7,7 +7,7 @@ mod security;
 pub async fn authenticate(app: &TestApp, username: &str, password: &str) -> String {
     let client = reqwest::Client::new();
     let token = client
-        .post(format!("{}/login", app.address()))
+        .post(format!("{}/token", app.address()))
         .basic_auth(username, Some(password))
         .send()
         .await

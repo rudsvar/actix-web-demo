@@ -50,7 +50,7 @@ async fn user_creation_to_token_verification() {
     // Try to get token with wrong password
     {
         let response = client
-            .post(format!("{}/login", &app.address()))
+            .post(format!("{}/token", &app.address()))
             .basic_auth(username, Some("wrongpassword"))
             .send()
             .await
@@ -60,7 +60,7 @@ async fn user_creation_to_token_verification() {
 
     // Get token
     let response = client
-        .post(format!("{}/login", &app.address()))
+        .post(format!("{}/token", &app.address()))
         .basic_auth(username, password)
         .send()
         .await

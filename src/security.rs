@@ -5,12 +5,6 @@ use crate::{
     service::user::user_db,
     DbPool,
 };
-use actix_http::HttpMessage;
-use actix_web::{dev::ServiceRequest, Error};
-use actix_web_grants::permissions::AttachPermissions;
-use actix_web_httpauth::{
-    extractors::bearer::BearerAuth,
-};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
@@ -46,23 +40,6 @@ pub enum Role {
     User,
     /// Administrator with all privileges.
     Admin,
-}
-
-/// Validates a request
-pub async fn validator(
-    req: ServiceRequest,
-    credentials: BearerAuth,
-) -> Result<ServiceRequest, Error> {
-    tracing::debug!("Validating request");
-    let token = credentials.token();
-    if let Ok(claims) = decode_jwt(token) {
-        tracing::debug!("Decoded claims {:?}", claims);
-        req.attach(claims.roles().to_vec());
-        req.extensions_mut().insert(claims);
-    } else {
-        tracing::debug!("No claims");
-    }
-    Ok(req)
 }
 
 /// Create a jwt for the provided user.

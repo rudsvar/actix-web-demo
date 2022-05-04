@@ -9,9 +9,9 @@ use crate::{
 use actix_web::{web::Data, HttpResponse};
 use actix_web_httpauth::extractors::{basic::BasicAuth, bearer::BearerAuth};
 
-#[actix_web::post("/login")]
-pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> AppResult<HttpResponse> {
-    tracing::debug!("Logging in user {}", credentials.user_id());
+#[actix_web::post("/token")]
+pub async fn request_token(pool: Data<DbPool>, credentials: BasicAuth) -> AppResult<HttpResponse> {
+    tracing::debug!("Authenticating {}", credentials.user_id());
 
     // Load user information
     let username = credentials.user_id();
@@ -21,15 +21,15 @@ pub async fn login(pool: Data<DbPool>, credentials: BasicAuth) -> AppResult<Http
 
     let token = encode_jwt(pool.get_ref(), username, password).await?;
 
-    tracing::info!("Sent jwt to: {}", username);
+    tracing::info!("Sent jwt to {}", username);
 
     Ok(HttpResponse::Created().body(token))
 }
 
 #[actix_web::get("/verify")]
-pub async fn verify(auth: BearerAuth) -> AppResult<HttpResponse> {
+pub async fn verify_token(auth: BearerAuth) -> AppResult<HttpResponse> {
+    tracing::debug!("Verifying jwt");
     let token = auth.token();
-    tracing::debug!("Got token {}", token);
     let claims = decode_jwt(token)?;
     tracing::debug!("Got claims {:?}", claims);
     Ok(HttpResponse::Ok().json(claims))

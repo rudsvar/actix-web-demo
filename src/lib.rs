@@ -17,7 +17,7 @@ use service::{
     account::{deposit, get_account, post_account, transfer, withdraw},
     client_context::client_context,
     health_check::health_check,
-    token::{login, verify},
+    token::{request_token, verify_token},
 };
 use sqlx::PgPool;
 use std::io;
@@ -39,7 +39,7 @@ pub type DbPool = PgPool;
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(security::validator);
+        let auth = HttpAuthentication::bearer(middleware::validate_jwt);
         App::new()
             // Database pool
             .app_data(pool.clone())
@@ -48,8 +48,8 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             .wrap(middleware::ResponseAppender)
             // Health check
             .service(health_check)
-            .service(login)
-            .service(verify)
+            .service(request_token)
+            .service(verify_token)
             .service(
                 // Subscription
                 web::scope("/api")
