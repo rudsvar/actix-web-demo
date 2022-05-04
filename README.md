@@ -28,4 +28,5 @@ To customize the log level, use the `RUST_LOG` environment variable.
 - Add authorization with actix-web-grants https://github.com/DDtKey/actix-web-grants
   Find some operation that only administrators should have.
   Make sure users can only send from their own accounts.
-- Clean up in general.
+- Clean up logging, set better defaults. Maybe move away from the json format (or even better, make it configurable).
+- Generate OpenAPI contract and add Swagger UI.
