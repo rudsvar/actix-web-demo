@@ -1,17 +1,13 @@
 //! An API for creating and modifying accounts.
 
-use crate::security::Role;
+use crate::security::{Claims, Role};
 use crate::{
     error::{BusinessError, DbError},
-    security::AuthenticatedUser,
     service::AppResult,
     DbPool,
 };
-use actix_web::{
-    web::{Data, Json, Path},
-    HttpResponse,
-};
-use actix_web_grants::{permissions::AuthDetails, proc_macro::has_roles};
+use actix_web::{web, HttpResponse};
+use actix_web_grants::proc_macro::has_roles;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -83,8 +79,8 @@ impl Account {
 
 #[actix_web::post("/accounts")]
 pub async fn post_account(
-    db: Data<DbPool>,
-    new_account: Json<NewAccount>,
+    db: web::Data<DbPool>,
+    new_account: web::Json<NewAccount>,
 ) -> AppResult<HttpResponse> {
     // Store in db
     let account = sqlx::query_as!(
@@ -108,13 +104,12 @@ pub async fn post_account(
 #[has_roles(
     "Role::User",
     type = "Role",
-    secure = "path_params.0 == user.id() || roles.has_role(&Role::Admin)"
+    secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
 )]
 pub async fn get_account(
-    db: Data<DbPool>,
-    user: AuthenticatedUser,
-    roles: AuthDetails<Role>,
-    path_params: Path<(i32, i32)>,
+    db: web::Data<DbPool>,
+    claims: web::ReqData<Claims>,
+    path_params: web::Path<(i32, i32)>,
 ) -> AppResult<HttpResponse> {
     let (user_id, account_id) = path_params.into_inner();
     tracing::debug!("Getting account");
@@ -159,9 +154,9 @@ where
 
 #[actix_web::post("/accounts/{id}/deposits")]
 pub async fn deposit(
-    db: Data<DbPool>,
-    id: Path<i32>,
-    deposit: Json<Deposit>,
+    db: web::Data<DbPool>,
+    id: web::Path<i32>,
+    deposit: web::Json<Deposit>,
 ) -> AppResult<HttpResponse> {
     let id = id.into_inner();
 
@@ -205,9 +200,9 @@ impl Withdrawal {
 
 #[actix_web::post("/accounts/{id}/withdrawals")]
 pub async fn withdraw(
-    db: Data<DbPool>,
-    id: Path<i32>,
-    withdrawal: Json<Withdrawal>,
+    db: web::Data<DbPool>,
+    id: web::Path<i32>,
+    withdrawal: web::Json<Withdrawal>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
     let id = id.into_inner();
@@ -268,8 +263,8 @@ pub struct Transfer {
 
 #[actix_web::post("/transfers")]
 pub async fn transfer(
-    db: Data<DbPool>,
-    new_transfer: Json<NewTransfer>,
+    db: web::Data<DbPool>,
+    new_transfer: web::Json<NewTransfer>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
 

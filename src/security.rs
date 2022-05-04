@@ -5,64 +5,15 @@ use crate::{
     service::user::user_db,
     DbPool,
 };
-use actix_http::{header::Header, StatusCode};
-use actix_web::{dev::ServiceRequest, error::InternalError, Error, FromRequest};
+use actix_http::HttpMessage;
+use actix_web::{dev::ServiceRequest, Error};
 use actix_web_grants::permissions::AttachPermissions;
 use actix_web_httpauth::{
     extractors::bearer::BearerAuth,
-    headers::authorization::{Authorization, Bearer},
 };
 use chrono::{Duration, Utc};
-use futures::{future, FutureExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
-
-/// A guarantee that the credentials of this user have been verified.
-/// This type can only be created from a request with the appropriate credentials.
-#[derive(Copy, Clone, Debug)]
-pub struct AuthenticatedUser {
-    id: i32,
-}
-
-impl AuthenticatedUser {
-    /// Returns the id of the authenticated user.
-    pub fn id(&self) -> i32 {
-        self.id
-    }
-}
-
-impl FromRequest for AuthenticatedUser {
-    type Error = Error;
-    type Future = future::LocalBoxFuture<'static, Result<Self, Error>>;
-
-    fn from_request(req: &actix_web::HttpRequest, _: &mut actix_http::Payload) -> Self::Future {
-        let auth = Authorization::<Bearer>::parse(req);
-        if let Err(e) = auth {
-            return async move {
-                Err(
-                    InternalError::new(format!("Can't authorize: {}", e), StatusCode::UNAUTHORIZED)
-                        .into(),
-                )
-            }
-            .boxed_local();
-        }
-        let auth = auth.unwrap();
-        let token = auth.as_ref().token().to_string();
-        let claims = decode_jwt(&token);
-        if let Err(e) = claims {
-            return async move {
-                Err(
-                    InternalError::new(format!("Can't authorize: {}", e), StatusCode::UNAUTHORIZED)
-                        .into(),
-                )
-            }
-            .boxed_local();
-        }
-        let claims = claims.unwrap();
-
-        async move { Ok(AuthenticatedUser { id: claims.id }) }.boxed_local()
-    }
-}
 
 /// The data stored in the jwt
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,8 +25,16 @@ pub struct Claims {
 
 impl Claims {
     /// Returns the roles stored in the claim.
+    pub fn id(&self) -> i32 {
+        self.id
+    }
+    /// Returns the roles stored in the claim.
     pub fn roles(&self) -> &[Role] {
         &self.roles
+    }
+    /// Check if the claim contains a specific role.
+    pub fn has_role(&self, role: &Role) -> bool {
+        self.roles.contains(role)
     }
 }
 
@@ -98,7 +57,8 @@ pub async fn validator(
     let token = credentials.token();
     if let Ok(claims) = decode_jwt(token) {
         tracing::debug!("Decoded claims {:?}", claims);
-        req.attach(claims.roles().to_vec())
+        req.attach(claims.roles().to_vec());
+        req.extensions_mut().insert(claims);
     } else {
         tracing::debug!("No claims");
     }
