@@ -1,6 +1,6 @@
 use actix_web_demo::{
     configuration::{load_configuration, DatabaseSettings},
-    telemetry, DbPool,
+    DbPool,
 };
 use once_cell::sync::Lazy;
 use sqlx::Executor;
@@ -8,17 +8,7 @@ use std::net::TcpListener;
 use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
-    let subscriber_name = "test".to_string();
-    let default_filter_level = "info".to_string();
-    if std::env::var("RUST_LOG").is_ok() {
-        let subscriber =
-            telemetry::get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
-        telemetry::init_subscriber(subscriber);
-    } else {
-        let subscriber =
-            telemetry::get_subscriber(subscriber_name, default_filter_level, std::io::sink);
-        telemetry::init_subscriber(subscriber);
-    };
+    tracing_subscriber::fmt::init();
 });
 
 pub struct TestApp {

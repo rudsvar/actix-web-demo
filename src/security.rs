@@ -44,6 +44,8 @@ pub enum Role {
 
 /// Create a jwt for the provided user.
 pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
+    tracing::debug!("Encoding token for `{}`", username);
+
     // Authenticate user
     let user_id = user_db::authenticate(conn, username, password)
         .await?

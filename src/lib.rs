@@ -29,7 +29,6 @@ pub mod error;
 pub mod middleware;
 pub mod security;
 pub mod service;
-pub mod telemetry;
 pub mod validated;
 
 /// The database connection pool type used in the application.

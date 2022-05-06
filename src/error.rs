@@ -9,7 +9,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum AppError {
     /// A logical error.
-    #[error("business error: {0}")]
+    #[error("{0}")]
     BusinessError(#[from] BusinessError),
     /// An external dependency failed.
     #[error("database error: {0}")]

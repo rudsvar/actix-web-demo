@@ -45,6 +45,7 @@ pub async fn fetch_user_by_username(
     conn: impl PgExecutor<'_>,
     username: &str,
 ) -> Result<User, DbError> {
+    tracing::debug!("Fetching user {} from database", username);
     let user = sqlx::query_as!(
         User,
         r#"SELECT id, name, password as "password: HashedPassword", created_at FROM users WHERE name = $1"#,
@@ -75,9 +76,12 @@ pub async fn authenticate(
     password: &str,
 ) -> Result<Option<i32>, DbError> {
     let user = fetch_user_by_username(conn, username).await?;
+    tracing::debug!("Fetched user {:?}", user);
     if user.password.verify(password) {
+        tracing::debug!("Authenticated user {}", user.name);
         Ok(Some(user.id))
     } else {
+        tracing::debug!("Failed to authenticate user {}", user.name);
         Ok(None)
     }
 }
