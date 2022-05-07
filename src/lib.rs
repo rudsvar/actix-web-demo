@@ -27,6 +27,7 @@ use tracing_actix_web::TracingLogger;
 pub mod configuration;
 pub mod error;
 pub mod middleware;
+pub mod repository;
 pub mod security;
 pub mod service;
 pub mod validated;
