@@ -11,15 +11,12 @@ use actix_web_httpauth::extractors::{basic::BasicAuth, bearer::BearerAuth};
 
 #[actix_web::post("/token")]
 pub async fn request_token(pool: Data<DbPool>, credentials: BasicAuth) -> AppResult<HttpResponse> {
-    tracing::debug!("{} requesting a token", credentials.user_id());
-
     // Load user information
     let username = credentials.user_id();
+    tracing::debug!("Token requested by `{}`", credentials.user_id());
     let password = credentials
         .password()
         .ok_or(BusinessError::AuthenticationError)?;
-
-    tracing::debug!("Credentials {}:{}", username, password);
 
     let token = encode_jwt(pool.get_ref(), username, password).await?;
 

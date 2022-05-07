@@ -43,8 +43,8 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             // Database pool
             .app_data(pool.clone())
             // Middleware to apply to all requests
+            .wrap(middleware::RequestWrapper)
             .wrap(TracingLogger::default())
-            .wrap(middleware::ResponseAppender)
             // Health check
             .service(health_check)
             .service(request_token)

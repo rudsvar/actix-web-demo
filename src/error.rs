@@ -21,7 +21,6 @@ pub enum AppError {
 
 impl ResponseError for AppError {
     fn status_code(&self) -> actix_http::StatusCode {
-        tracing::error!("{}", self);
         match self {
             AppError::BusinessError(error) => error.status_code(),
             AppError::DbError(error) => error.status_code(),

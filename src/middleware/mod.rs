@@ -1,7 +1,7 @@
 //! Middleware implementations.
 
-pub mod response_appender;
+pub mod request_wrapper;
 pub mod validators;
 
-pub use response_appender::ResponseAppender;
+pub use request_wrapper::RequestWrapper;
 pub use validators::validate_jwt;
