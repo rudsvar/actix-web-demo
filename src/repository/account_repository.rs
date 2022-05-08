@@ -8,9 +8,16 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::PgExecutor;
 
-/// An wrapper for accessing the account table.
+/// A wrapper for accessing the account table.
 #[derive(Copy, Clone, Debug)]
-pub struct AccountRepository<T>(T);
+pub struct AccountRepository<T>(pub T);
+
+impl<T> AccountRepository<T> {
+    /// Creates a new account repository.
+    pub fn new(connection: T) -> Self {
+        Self(connection)
+    }
+}
 
 #[async_trait(?Send)]
 impl<'a, T> Repository<'a> for AccountRepository<T>
@@ -28,9 +35,9 @@ where
             INSERT INTO accounts (name, balance, owner_id)
             VALUES ($1, $2, $3)
             RETURNING *"#,
-            new_account.name,
+            new_account.name(),
             0i64,
-            new_account.owner_id
+            new_account.owner_id()
         )
         .fetch_one(&mut self.0)
         .await
@@ -44,11 +51,11 @@ where
             .map_err(DbError::from)
     }
 
-    async fn update(&'a mut self, data: Self::Store) -> Self::Load {
+    async fn update(&'a mut self, _data: Self::Store) -> Self::Load {
         todo!()
     }
 
-    async fn delete(&'a mut self, id: Self::Id) -> i32 {
+    async fn delete(&'a mut self, _id: Self::Id) -> i32 {
         todo!()
     }
 }

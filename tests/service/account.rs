@@ -10,9 +10,10 @@ async fn post_account_gives_201() {
     let new_account = NewAccount::new("my_account".to_string(), 1);
 
     // Act
+    let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
         .post(format!("{}/api/accounts", app.address()))
-        .bearer_auth("invalid_token")
+        .bearer_auth(user_token)
         .json(&new_account)
         .send()
         .await

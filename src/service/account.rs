@@ -1,5 +1,7 @@
 //! An API for creating and modifying accounts.
 
+use crate::repository::account_repository::AccountRepository;
+use crate::repository::Repository;
 use crate::security::{Claims, Role};
 use crate::{
     error::{BusinessError, DbError},
@@ -15,8 +17,8 @@ use sqlx::FromRow;
 /// A new account.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewAccount {
-    pub name: String,
-    pub owner_id: i32,
+    name: String,
+    owner_id: i32,
 }
 
 impl NewAccount {
@@ -24,6 +26,18 @@ impl NewAccount {
     #[must_use]
     pub fn new(name: String, owner_id: i32) -> Self {
         Self { name, owner_id }
+    }
+
+    /// Get a reference to the new account's name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+
+    /// Get the new account's owner id.
+    #[must_use]
+    pub fn owner_id(&self) -> i32 {
+        self.owner_id
     }
 }
 
@@ -78,25 +92,20 @@ impl Account {
 }
 
 #[actix_web::post("/accounts")]
+#[has_roles(
+    "Role::User",
+    type = "Role",
+    secure = "new_account.owner_id == claims.id() || claims.has_role(&Role::Admin)"
+)]
 pub async fn post_account(
     db: web::Data<DbPool>,
+    claims: web::ReqData<Claims>,
     new_account: web::Json<NewAccount>,
 ) -> AppResult<HttpResponse> {
-    // Store in db
-    let account = sqlx::query_as!(
-        Account,
-        r#"
-        INSERT INTO accounts (name, balance, owner_id)
-        VALUES ($1, $2, $3)
-        RETURNING *"#,
-        new_account.name,
-        0i64,
-        new_account.owner_id
-    )
-    .fetch_one(db.get_ref())
-    .await
-    .map_err(DbError::from)?;
-    // Respond with newly created object
+    let tx = db.begin().await.map_err(DbError::from)?;
+    let mut ar = AccountRepository::new(tx);
+    let account = ar.create(new_account.into_inner()).await?;
+    ar.0.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Created().json(account))
 }
 
@@ -111,19 +120,11 @@ pub async fn get_account(
     claims: web::ReqData<Claims>,
     path_params: web::Path<(i32, i32)>,
 ) -> AppResult<HttpResponse> {
-    let (user_id, account_id) = path_params.into_inner();
-    tracing::debug!("Getting account");
-    let account = sqlx::query_as!(
-        Account,
-        r#"SELECT * FROM accounts WHERE id = $1 AND owner_id = $2"#,
-        account_id,
-        user_id,
-    )
-    .fetch_one(db.get_ref())
-    .await
-    .map_err(DbError::from)?;
-
-    // Respond with newly created object or error message
+    let account_id = path_params.1;
+    let tx = db.begin().await.map_err(DbError::from)?;
+    let mut ar = AccountRepository::new(tx);
+    let account = ar.read(account_id).await?;
+    ar.0.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().json(account))
 }
 
