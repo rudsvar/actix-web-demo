@@ -14,7 +14,7 @@ A demo web application made with `actix-web`.
 
 1. Start a PostgreSQL database. The easiest way is to run `docker-compose up -d postgres`.
 2. We use SQLx to manage our migrations. Set up the database with `sqlx database setup`.
-3. Run the application with `cargo run`. By default the output is formatted as JSON, so you may want to pipe the result to `bunyan` to get more human-readable output.
+3. Run the application with `cargo run`.
 
 To customize the log level, use the `RUST_LOG` environment variable.
 
