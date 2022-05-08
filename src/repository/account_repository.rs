@@ -1,54 +1,74 @@
+//! Utilities for interacting with the account table.
+
 use super::Repository;
 use crate::{
     error::DbError,
     service::account::{Account, NewAccount},
-    DbPool,
 };
 use async_trait::async_trait;
-use sqlx::{PgExecutor, PgPool, Postgres, Transaction};
+use sqlx::PgExecutor;
 
+/// An wrapper for accessing the account table.
+#[derive(Copy, Clone, Debug)]
 pub struct AccountRepository<T>(T);
 
 #[async_trait(?Send)]
-impl<T> Repository for AccountRepository<T>
+impl<'a, T> Repository<'a> for AccountRepository<T>
 where
-    for<'a> &'a mut T: PgExecutor<'static>,
+    &'a mut T: PgExecutor<'a> + 'a,
 {
-    type Id = (i32, i32);
+    type Id = i32;
     type Store = NewAccount;
     type Load = Result<Account, DbError>;
 
-    async fn fetch<'b>(&'b mut self, id: Self::Id) -> Self::Load {
-        let result = sqlx::query_as!(
+    async fn create(&'a mut self, new_account: Self::Store) -> Self::Load {
+        sqlx::query_as!(
             Account,
-            r#"SELECT * FROM accounts WHERE id = $1 AND owner_id = $2"#,
-            id.0,
-            id.1,
+            r#"
+            INSERT INTO accounts (name, balance, owner_id)
+            VALUES ($1, $2, $3)
+            RETURNING *"#,
+            new_account.name,
+            0i64,
+            new_account.owner_id
         )
         .fetch_one(&mut self.0)
         .await
-        .map_err(DbError::from)?;
-        Ok(result)
+        .map_err(DbError::from)
     }
 
-    async fn store(&self, data: Self::Store) -> Self::Load {
+    async fn read(&'a mut self, id: Self::Id) -> Self::Load {
+        sqlx::query_as!(Account, r#"SELECT * FROM accounts WHERE id = $1"#, id)
+            .fetch_one(&mut self.0)
+            .await
+            .map_err(DbError::from)
+    }
+
+    async fn update(&'a mut self, data: Self::Store) -> Self::Load {
         todo!()
     }
 
-    async fn update(&self, data: Self::Store) -> Self::Load {
-        todo!()
-    }
-
-    async fn delete(&self, id: Self::Id) -> i32 {
+    async fn delete(&'a mut self, id: Self::Id) -> i32 {
         todo!()
     }
 }
 
-async fn foo<'a>(e: impl PgExecutor<'static>) {
-    // sqlx::query("select * from users").execute(e).await;
-    let x: DbPool = todo!();
-    let tx: Transaction<'static, Postgres> = x.begin().await.unwrap();
-    // foo(&mut tx).await;
-    let ar = AccountRepository(tx);
-    let account = ar.fetch((0, 0)).await;
+#[cfg(test)]
+mod tests {
+    use super::AccountRepository;
+    use crate::{repository::Repository, DbPool};
+
+    #[allow(dead_code)]
+    async fn compiles_with_connection(pool: DbPool) {
+        let tx = pool.begin().await.unwrap();
+        let mut repo = AccountRepository(tx);
+        let _ = repo.read(0).await;
+    }
+
+    #[allow(dead_code)]
+    async fn compiles_with_transaction(pool: DbPool) {
+        let conn = pool.acquire().await.unwrap();
+        let mut repo = AccountRepository(conn);
+        let _ = repo.read(0).await;
+    }
 }

@@ -15,8 +15,8 @@ use sqlx::FromRow;
 /// A new account.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewAccount {
-    name: String,
-    owner_id: i32,
+    pub name: String,
+    pub owner_id: i32,
 }
 
 impl NewAccount {
