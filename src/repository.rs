@@ -8,7 +8,7 @@ pub trait Repository {
     type Store;
     type Load;
 
-    async fn fetch(&mut self, id: Self::Id) -> Self::Load;
+    async fn fetch(&self, id: Self::Id) -> Self::Load;
     async fn store(&self, data: Self::Store) -> Self::Load;
     async fn update(&self, data: Self::Store) -> Self::Load;
     async fn delete(&self, id: Self::Id) -> i32;
