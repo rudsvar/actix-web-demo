@@ -12,9 +12,7 @@ use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use service::transfer::transfer_api::create_transfer;
 use service::{
-    account::account_api::{deposit, withdraw},
     client_context::client_context,
     health_check::health_check,
     token::{request_token, verify_token},
@@ -49,21 +47,21 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             .service(health_check)
             .service(request_token)
             .service(verify_token)
+            // Other
+            .service(client_context)
+            // Api
             .service(
-                // Subscription
                 web::scope("/api")
                     .wrap(auth)
                     .configure(service::account::account_config)
                     .configure(service::user::user_config)
-                    .service(deposit)
-                    .service(withdraw)
-                    .service(create_transfer)
+                    .configure(service::deposit::deposit_config)
+                    .configure(service::withdrawal::withdrawal_config)
+                    .configure(service::transfer::transfer_config)
                     // Secure endpoints
                     .route("/user", web::get().to(user))
                     .route("/admin", web::get().to(admin)),
             )
-            // Other
-            .service(client_context)
     })
     .listen(listener)?
     .run();
