@@ -10,6 +10,7 @@ pub mod account;
 pub mod client_context;
 pub mod health_check;
 pub mod token;
+pub mod transfer;
 pub mod user;
 
 /// A common response type for services.
