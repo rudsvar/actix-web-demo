@@ -3,7 +3,9 @@
 use crate::{
     error::{BusinessError, DbError},
     service::{
-        account::account_model::Account, withdrawal::withdrawal_model::Withdrawal, AppResult,
+        account::account_repository,
+        withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
+        AppResult,
     },
     DbPool,
 };
@@ -16,13 +18,10 @@ pub async fn withdraw(
     withdrawal: web::Json<Withdrawal>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
-    let id = id.into_inner();
+    let account_id = id.into_inner();
 
-    // Check account balance
-    let old_account = sqlx::query_as!(Account, "SELECT * FROM accounts WHERE id = $1", id)
-        .fetch_one(&mut tx)
-        .await
-        .map_err(DbError::from)?;
+    // Check current account balance
+    let old_account = account_repository::fetch_account(&mut tx, account_id).await?;
 
     if old_account.balance < withdrawal.amount() as i64 {
         return Err(BusinessError::ValidationError(format!(
@@ -33,17 +32,9 @@ pub async fn withdraw(
         .into());
     }
 
-    // Store in db
-    sqlx::query!(
-        "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
-        withdrawal.amount() as i64,
-        id
-    )
-    .execute(&mut tx)
-    .await
-    .map_err(DbError::from)?;
-
+    // Make withdrawal
+    withdrawal_repository::withdraw_from_account(&mut tx, account_id, withdrawal.into_inner())
+        .await?;
     tx.commit().await.map_err(DbError::from)?;
-
-    Ok(HttpResponse::Created().finish())
+    Ok(HttpResponse::Ok().finish())
 }

@@ -1,11 +1,7 @@
 //! Utilities for interacting with the account table.
 
 use sqlx::{Postgres, Transaction};
-
-use crate::{
-    error::{AppError, BusinessError, DbError},
-    service::account::account_model::Account,
-};
+use crate::error::DbError;
 
 use super::transfer_model::{NewTransfer, Transfer};
 
@@ -13,46 +9,8 @@ use super::transfer_model::{NewTransfer, Transfer};
 pub async fn insert_transfer(
     tx: &mut Transaction<'_, Postgres>,
     new_transfer: NewTransfer,
-) -> Result<Transfer, AppError> {
-    // Verify old account
-    let old_account = sqlx::query_as!(
-        Account,
-        "SELECT * FROM accounts WHERE id = $1",
-        new_transfer.from_account
-    )
-    .fetch_one(&mut *tx)
-    .await
-    .map_err(DbError::from)?;
-
-    if new_transfer.amount as i64 > old_account.balance {
-        return Err(BusinessError::ValidationError(format!(
-            "Balance is too low, required {} but had {}",
-            new_transfer.amount, old_account.balance
-        ))
-        .into());
-    }
-
-    // Take money from account
-    sqlx::query!(
-        "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
-        new_transfer.amount as i64,
-        new_transfer.from_account
-    )
-    .execute(&mut *tx)
-    .await
-    .map_err(DbError::from)?;
-
-    // Give money to other account
-    sqlx::query!(
-        "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
-        new_transfer.amount as i64,
-        new_transfer.to_account
-    )
-    .execute(&mut *tx)
-    .await
-    .map_err(DbError::from)?;
-
-    // Store transaction
+) -> Result<Transfer, DbError> {
+    // Store transfer
     let transfer = sqlx::query_as!(
         Transfer,
         r#"
@@ -65,8 +23,6 @@ pub async fn insert_transfer(
         new_transfer.amount as i64,
     )
     .fetch_one(tx)
-    .await
-    .map_err(DbError::from)?;
-
+    .await?;
     Ok(transfer)
 }

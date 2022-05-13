@@ -1,6 +1,10 @@
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
-use actix_web_demo::service::{account::{account_model::{NewAccount, Account}}, deposit::deposit_model::Deposit, withdrawal::withdrawal_model::Withdrawal};
+use actix_web_demo::service::{
+    account::account_model::{Account, NewAccount},
+    deposit::deposit_model::Deposit,
+    withdrawal::withdrawal_model::Withdrawal,
+};
 
 #[actix_rt::test]
 async fn post_account_gives_201() {
@@ -104,7 +108,7 @@ async fn deposit_increases_balance() {
         .await
         .unwrap();
 
-    assert_eq!(StatusCode::CREATED, response.status());
+    assert_eq!(StatusCode::OK, response.status());
 
     let new_account: Account = client
         .get(format!("{}/api/users/1/accounts/4", app.address()))
@@ -153,7 +157,7 @@ async fn withdraw_decreases_balance() {
         .send()
         .await
         .unwrap();
-    assert_eq!(StatusCode::CREATED, response.status());
+    assert_eq!(StatusCode::OK, response.status());
 
     let new_account: Account = client
         .get(format!("{}/api/users/1/accounts/4", app.address()))
