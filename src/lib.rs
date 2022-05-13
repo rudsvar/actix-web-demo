@@ -12,9 +12,8 @@ use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use service::user::user_api::{get_user, list_users, post_user};
 use service::{
-    account::{deposit, get_account, post_account, transfer, withdraw},
+    account::account_api::{deposit, transfer, withdraw},
     client_context::client_context,
     health_check::health_check,
     token::{request_token, verify_token},
@@ -27,7 +26,6 @@ use tracing_actix_web::TracingLogger;
 pub mod configuration;
 pub mod error;
 pub mod middleware;
-pub mod repository;
 pub mod security;
 pub mod service;
 pub mod validated;
@@ -54,11 +52,8 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
                 // Subscription
                 web::scope("/api")
                     .wrap(auth)
-                    .service(post_user)
-                    .service(get_user)
-                    .service(list_users)
-                    .service(post_account)
-                    .service(get_account)
+                    .configure(service::account::account_config)
+                    .configure(service::user::user_config)
                     .service(deposit)
                     .service(withdraw)
                     .service(transfer)

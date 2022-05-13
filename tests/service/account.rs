@@ -1,6 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
-use actix_web_demo::service::account::{Account, Deposit, NewAccount, Withdrawal};
+use actix_web_demo::service::account::{account_api::{Deposit, Withdrawal}, account_model::{NewAccount, Account}};
 
 #[actix_rt::test]
 async fn post_account_gives_201() {

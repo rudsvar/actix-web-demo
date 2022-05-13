@@ -1,8 +1,8 @@
 //! An API for creating and modifying accounts.
 
-use crate::repository::account_repository::AccountRepository;
-use crate::repository::Repository;
 use crate::security::{Claims, Role};
+use crate::service::account::account_model::{Account, NewAccount};
+use crate::service::account::account_repository;
 use crate::{
     error::{BusinessError, DbError},
     service::AppResult,
@@ -14,98 +14,20 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-/// A new account.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NewAccount {
-    name: String,
-    owner_id: i32,
-}
-
-impl NewAccount {
-    /// Creates a new account.
-    #[must_use]
-    pub fn new(name: String, owner_id: i32) -> Self {
-        Self { name, owner_id }
-    }
-
-    /// Get a reference to the new account's name.
-    #[must_use]
-    pub fn name(&self) -> &str {
-        self.name.as_ref()
-    }
-
-    /// Get the new account's owner id.
-    #[must_use]
-    pub fn owner_id(&self) -> i32 {
-        self.owner_id
-    }
-}
-
-/// An existing account.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromRow)]
-pub struct Account {
-    /// The account id.
-    pub id: i32,
-    /// The name of the account.
-    pub name: String,
-    /// The current balance of the account.
-    pub balance: i64,
-    /// The owner of the account.
-    pub owner_id: i32,
-}
-
-impl Account {
-    /// Creates a new account.
-    #[must_use]
-    pub fn new(id: i32, name: String, balance: i64, owner_id: i32) -> Self {
-        Self {
-            id,
-            name,
-            balance,
-            owner_id,
-        }
-    }
-
-    /// Get the account's id.
-    #[must_use]
-    pub fn id(&self) -> i32 {
-        self.id
-    }
-
-    /// Get a reference to the account's name.
-    #[must_use]
-    pub fn name(&self) -> &str {
-        self.name.as_ref()
-    }
-
-    /// Get the account's balance.
-    #[must_use]
-    pub fn balance(&self) -> i64 {
-        self.balance
-    }
-
-    /// Get the account's owner id.
-    #[must_use]
-    pub fn owner_id(&self) -> i32 {
-        self.owner_id
-    }
-}
-
 #[actix_web::post("/accounts")]
 #[has_roles(
     "Role::User",
     type = "Role",
-    secure = "new_account.owner_id == claims.id() || claims.has_role(&Role::Admin)"
+    secure = "new_account.owner_id() == claims.id() || claims.has_role(&Role::Admin)"
 )]
 pub async fn post_account(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
     new_account: web::Json<NewAccount>,
 ) -> AppResult<HttpResponse> {
-    let tx = db.begin().await.map_err(DbError::from)?;
-    let mut ar = AccountRepository::new(tx);
-    let account = ar.create(new_account.into_inner()).await?;
-    ar.0.commit().await.map_err(DbError::from)?;
+    let mut tx = db.begin().await.map_err(DbError::from)?;
+    let account = account_repository::insert(&mut tx, new_account.into_inner()).await?;
+    tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Created().json(account))
 }
 
@@ -121,10 +43,9 @@ pub async fn get_account(
     path_params: web::Path<(i32, i32)>,
 ) -> AppResult<HttpResponse> {
     let account_id = path_params.1;
-    let tx = db.begin().await.map_err(DbError::from)?;
-    let mut ar = AccountRepository::new(tx);
-    let account = ar.read(account_id).await?;
-    ar.0.commit().await.map_err(DbError::from)?;
+    let mut tx = db.begin().await.map_err(DbError::from)?;
+    let account = account_repository::fetch(&mut tx, account_id).await?;
+    tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().json(account))
 }
 
