@@ -1,7 +1,7 @@
 //! An API for transferring money between accounts.
 
 use crate::{
-    error::{BusinessError, DbError},
+    error::{ServiceError, DbError},
     service::{
         account::account_repository,
         deposit::{deposit_model::Deposit, deposit_repository},
@@ -24,7 +24,7 @@ pub async fn create_transfer(
     let old_account = account_repository::fetch_account(&mut tx, new_transfer.from_account).await?;
 
     if new_transfer.amount as i64 > old_account.balance() {
-        return Err(BusinessError::ValidationError(format!(
+        return Err(ServiceError::ValidationError(format!(
             "Balance is too low, required {} but had {}",
             new_transfer.amount,
             old_account.balance()
@@ -33,7 +33,7 @@ pub async fn create_transfer(
     }
 
     // Take from account
-    withdrawal_repository::withdraw_from_account(
+    withdrawal_repository::withdraw(
         &mut tx,
         new_transfer.from_account,
         Withdrawal::new(new_transfer.amount),

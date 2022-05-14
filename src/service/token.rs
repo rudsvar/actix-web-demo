@@ -2,7 +2,7 @@
 
 use super::AppResult;
 use crate::{
-    error::BusinessError,
+    error::AppError,
     security::{decode_jwt, encode_jwt},
     DbPool,
 };
@@ -16,7 +16,7 @@ pub async fn request_token(pool: Data<DbPool>, credentials: BasicAuth) -> AppRes
     tracing::debug!("Token requested by `{}`", credentials.user_id());
     let password = credentials
         .password()
-        .ok_or(BusinessError::AuthenticationError)?;
+        .ok_or(AppError::AuthenticationError)?;
 
     let token = encode_jwt(pool.get_ref(), username, password).await?;
 

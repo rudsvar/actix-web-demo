@@ -1,9 +1,8 @@
 //! An API for withdrawing from an account.
 
 use crate::{
-    error::{BusinessError, DbError},
+    error::{DbError, ServiceError},
     service::{
-        account::account_repository,
         withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
         AppResult,
     },
@@ -18,23 +17,28 @@ pub async fn withdraw(
     withdrawal: web::Json<Withdrawal>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
+
     let account_id = id.into_inner();
+    let withdrawal = withdrawal.into_inner();
 
-    // Check current account balance
-    let old_account = account_repository::fetch_account(&mut tx, account_id).await?;
+    // Try to make withdrawal
+    tracing::debug!(
+        "Withdrawing {} from account {}",
+        withdrawal.amount(),
+        account_id
+    );
+    let account = withdrawal_repository::withdraw(&mut tx, account_id, withdrawal).await?;
 
-    if old_account.balance < withdrawal.amount() as i64 {
-        return Err(BusinessError::ValidationError(format!(
-            "Balance is too low, required {} but had {}",
-            old_account.balance(),
-            withdrawal.amount()
+    // Check if balance became negative
+    if account.balance() < 0 {
+        return Err(ServiceError::ValidationError(format!(
+            "Too low balance, required {} but had {}",
+            withdrawal.amount(),
+            account.balance() + withdrawal.amount() as i64
         ))
         .into());
     }
 
-    // Make withdrawal
-    withdrawal_repository::withdraw_from_account(&mut tx, account_id, withdrawal.into_inner())
-        .await?;
     tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().finish())
 }

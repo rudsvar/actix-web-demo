@@ -1,10 +1,6 @@
 //! Types and functions for setting up application security.
 
-use crate::{
-    error::{AppError, BusinessError},
-    service::user::user_db,
-    DbPool,
-};
+use crate::{error::AppError, service::user::user_db, DbPool};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
@@ -47,7 +43,7 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     // Authenticate user
     let user_id = user_db::authenticate(conn, username, password)
         .await?
-        .ok_or(BusinessError::AuthenticationError)?;
+        .ok_or(AppError::AuthenticationError)?;
 
     // Fetch user roles
     let roles = user_db::fetch_roles(conn, username).await?;
@@ -85,6 +81,6 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
         &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
         &Validation::default(),
     )
-    .map_err(|_| BusinessError::AuthenticationError)?;
+    .map_err(|_| AppError::AuthenticationError)?;
     Ok(decoded.claims)
 }

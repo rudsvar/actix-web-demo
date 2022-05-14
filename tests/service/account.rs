@@ -183,13 +183,14 @@ async fn withdrawing_too_much_fails() {
         .await
         .unwrap();
     let client = reqwest::Client::new();
+    let user_token = super::authenticate(&app, "user", "user").await;
 
     // Make a withdrawal
     let withdrawal_amount = 500;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
         .post(format!("{}/api/accounts/4/withdrawals", app.address()))
-        .bearer_auth("invalid_token")
+        .bearer_auth(user_token)
         .json(&withdrawal)
         .send()
         .await

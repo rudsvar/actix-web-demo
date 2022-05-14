@@ -1,6 +1,6 @@
 //! Validators for [`actix_web_httpauth::middleware::HttpAuthentication`].
 
-use crate::security::decode_jwt;
+use crate::{error::AppError, security::decode_jwt};
 use actix_http::HttpMessage;
 use actix_web::{dev::ServiceRequest, Error};
 use actix_web_grants::permissions::AttachPermissions;
@@ -19,14 +19,13 @@ pub async fn validate_jwt(
     req: ServiceRequest,
     credentials: BearerAuth,
 ) -> Result<ServiceRequest, Error> {
-    tracing::debug!("Validating jwt");
     let token = credentials.token();
     if let Ok(claims) = decode_jwt(token) {
         tracing::debug!("Decoded claims: {:?}", claims);
         req.attach(claims.roles().to_vec());
         req.extensions_mut().insert(claims);
+        Ok(req)
     } else {
-        tracing::warn!("No valid claims");
+        Err(AppError::AuthenticationError.into())
     }
-    Ok(req)
 }

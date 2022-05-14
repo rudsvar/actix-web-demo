@@ -2,28 +2,16 @@ CREATE TABLE accounts (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     balance BIGINT NOT NULL,
-    owner_id INT NOT NULL,
-
-    CONSTRAINT fk_owner_id
-        FOREIGN KEY (owner_id)
-        REFERENCES users(id)
+    owner_id INT NOT NULL REFERENCES users(id)
 );
 SELECT setval('accounts_id_seq', 999);
 
 CREATE TABLE transfers (
     id SERIAL PRIMARY KEY,
-    from_account INT NOT NULL,
-    to_account INT NOT NULL,
+    from_account INT NOT NULL REFERENCES accounts(id),
+    to_account INT NOT NULL REFERENCES accounts(id),
     amount BIGINT NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_from_account
-        FOREIGN KEY (from_account)
-        REFERENCES accounts(id),
-
-    CONSTRAINT fk_to_account
-        FOREIGN KEY (to_account)
-        REFERENCES accounts(id)
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 SELECT setval('transfers_id_seq', 999);
 
