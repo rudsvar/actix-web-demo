@@ -1,5 +1,6 @@
 //! An API for creating and modifying accounts.
 
+use crate::error::AppError;
 use crate::security::{Claims, Role};
 use crate::service::account::account_model::NewAccount;
 use crate::service::account::account_repository;
@@ -38,6 +39,9 @@ pub async fn get_account(
     let account_id = path_params.1;
     let mut tx = db.begin().await.map_err(DbError::from)?;
     let account = account_repository::fetch_account(&mut tx, account_id).await?;
+    if account.owner_id != claims.id() && !claims.has_role(&Role::Admin) {
+        return Err(AppError::AuthorizationError);
+    }
     tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().json(account))
 }

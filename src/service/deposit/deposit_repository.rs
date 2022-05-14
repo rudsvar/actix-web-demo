@@ -5,7 +5,7 @@ use crate::error::DbError;
 use sqlx::PgExecutor;
 
 /// Increase balance on an account.
-pub async fn deposit_into_account(
+pub async fn deposit(
     e: impl PgExecutor<'_>,
     account_id: i32,
     deposit: Deposit,

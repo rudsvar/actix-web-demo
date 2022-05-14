@@ -16,7 +16,6 @@ pub async fn deposit(
     deposit: web::Json<Deposit>,
 ) -> AppResult<HttpResponse> {
     let account_id = id.into_inner();
-    deposit_repository::deposit_into_account(db.get_ref(), account_id, deposit.into_inner())
-        .await?;
+    deposit_repository::deposit(db.get_ref(), account_id, deposit.into_inner()).await?;
     Ok(HttpResponse::Ok().finish())
 }

@@ -1,7 +1,9 @@
 //! An API for transferring money between accounts.
 
+use crate::security::Role;
 use crate::{
     error::{DbError, ServiceError},
+    security::Claims,
     service::{
         account::account_repository,
         deposit::{deposit_model::Deposit, deposit_repository},
@@ -12,10 +14,17 @@ use crate::{
     DbPool,
 };
 use actix_web::{web, HttpResponse};
+use actix_web_grants::proc_macro::has_roles;
 
 #[actix_web::post("/transfers")]
+#[has_roles(
+    "Role::User",
+    type = "Role",
+    secure = "new_transfer.from_account == claims.id() || claims.has_role(&Role::Admin)"
+)]
 pub async fn create_transfer(
     db: web::Data<DbPool>,
+    claims: web::ReqData<Claims>,
     new_transfer: web::Json<NewTransfer>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
@@ -41,9 +50,9 @@ pub async fn create_transfer(
     .await?;
 
     // Give to account
-    deposit_repository::deposit_into_account(
+    deposit_repository::deposit(
         &mut tx,
-        new_transfer.from_account,
+        new_transfer.to_account,
         Deposit::new(new_transfer.amount),
     )
     .await?;
