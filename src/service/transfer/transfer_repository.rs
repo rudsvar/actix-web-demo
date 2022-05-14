@@ -1,7 +1,7 @@
 //! Utilities for interacting with the account table.
 
-use sqlx::{Postgres, Transaction};
 use crate::error::DbError;
+use sqlx::{Postgres, Transaction};
 
 use super::transfer_model::{NewTransfer, Transfer};
 
