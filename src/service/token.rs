@@ -19,6 +19,7 @@ pub async fn request_token(pool: Data<DbPool>, credentials: BasicAuth) -> AppRes
         .ok_or(AppError::AuthenticationError)?;
 
     let token = encode_jwt(pool.get_ref(), username, password).await?;
+    tracing::debug!("Sending token to `{}`", credentials.user_id());
 
     Ok(HttpResponse::Created().body(token))
 }

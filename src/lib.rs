@@ -36,7 +36,7 @@ pub type DbPool = PgPool;
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
     let pool = web::Data::new(db_pool);
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(middleware::validate_jwt);
+        let auth = HttpAuthentication::bearer(security::validate_jwt);
         App::new()
             // Database pool
             .app_data(pool.clone())

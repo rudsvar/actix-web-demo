@@ -1,6 +1,10 @@
 //! Types and functions for setting up application security.
 
 use crate::{error::AppError, service::user::user_db, DbPool};
+use actix_http::HttpMessage;
+use actix_web::{dev::ServiceRequest, Error};
+use actix_web_grants::permissions::AttachPermissions;
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
@@ -68,8 +72,6 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     )
     .unwrap();
 
-    tracing::debug!("Sending token to `{}`", username);
-
     Ok(token)
 }
 
@@ -83,4 +85,28 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
     )
     .map_err(|_| AppError::AuthenticationError)?;
     Ok(decoded.claims)
+}
+
+/// A validator for [`actix_web_httpauth::middleware::HttpAuthentication`] that gets roles from a JWT.
+///
+/// # Examples
+///
+/// ```
+/// # use actix_web_httpauth::middleware::HttpAuthentication;
+/// # use actix_web_demo::security::validate_jwt;
+/// let auth = HttpAuthentication::bearer(validate_jwt);
+/// ```
+pub async fn validate_jwt(
+    req: ServiceRequest,
+    credentials: BearerAuth,
+) -> Result<ServiceRequest, Error> {
+    let token = credentials.token();
+    if let Ok(claims) = decode_jwt(token) {
+        tracing::debug!("Found claims: {:?}", claims);
+        req.attach(claims.roles().to_vec());
+        req.extensions_mut().insert(claims);
+        Ok(req)
+    } else {
+        Err(AppError::AuthenticationError.into())
+    }
 }

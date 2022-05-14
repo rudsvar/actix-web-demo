@@ -60,6 +60,8 @@ async fn get_account_gives_200() {
 #[actix_rt::test]
 async fn get_missing_account_gives_404() {
     let app = spawn_test_app().await;
+    let user_token = super::authenticate(&app, "user", "user").await;
+
     // Populate db with test data
     sqlx::query_file!("tests/sql/accounts.sql")
         .execute(app.db())
@@ -68,8 +70,8 @@ async fn get_missing_account_gives_404() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{}/api/accounts/0", app.address()))
-        .bearer_auth("invalid_token")
+        .get(format!("{}/api/users/1/accounts/0", app.address()))
+        .bearer_auth(user_token)
         .send()
         .await
         .unwrap();

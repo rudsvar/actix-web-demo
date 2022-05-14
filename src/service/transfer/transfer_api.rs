@@ -1,7 +1,7 @@
 //! An API for transferring money between accounts.
 
 use crate::{
-    error::{ServiceError, DbError},
+    error::{DbError, ServiceError},
     service::{
         account::account_repository,
         deposit::{deposit_model::Deposit, deposit_repository},
