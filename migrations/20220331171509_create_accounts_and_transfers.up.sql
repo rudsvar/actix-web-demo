@@ -15,7 +15,7 @@ CREATE TABLE transfers (
 );
 SELECT setval('transfers_id_seq', 999);
 
-INSERT INTO accounts (id, name, balance, owner_id) VALUES (1, 'acc1',   0, 1);
+INSERT INTO accounts (id, name, balance, owner_id) VALUES (1, 'acc1', 100, 1);
 INSERT INTO accounts (id, name, balance, owner_id) VALUES (2, 'acc2', 500, 1);
 INSERT INTO accounts (id, name, balance, owner_id) VALUES (3, 'acc3', 700, 2);
 

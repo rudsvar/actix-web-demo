@@ -36,17 +36,12 @@ async fn post_account_gives_201() {
 #[actix_rt::test]
 async fn get_account_gives_200() {
     let app = spawn_test_app().await;
-    // Populate db with test data
-    sqlx::query_file!("tests/sql/accounts.sql")
-        .execute(app.db())
-        .await
-        .unwrap();
     let client = reqwest::Client::new();
+    let user_token = super::authenticate(&app, "user", "user").await;
 
     // Read response
-    let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
-        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(user_token)
         .send()
         .await
@@ -54,7 +49,7 @@ async fn get_account_gives_200() {
     assert_eq!(StatusCode::OK, response.status());
 
     let account: Account = response.json().await.unwrap();
-    assert_eq!(Account::new(4, "test".to_string(), 200, 1), account);
+    assert_eq!(Account::new(1, "acc1".to_string(), 100, 1), account);
 }
 
 #[actix_rt::test]
@@ -63,10 +58,6 @@ async fn get_missing_account_gives_404() {
     let user_token = super::authenticate(&app, "user", "user").await;
 
     // Populate db with test data
-    sqlx::query_file!("tests/sql/accounts.sql")
-        .execute(app.db())
-        .await
-        .unwrap();
     let client = reqwest::Client::new();
 
     let response = client
@@ -81,16 +72,12 @@ async fn get_missing_account_gives_404() {
 #[actix_rt::test]
 async fn deposit_increases_balance() {
     let app = spawn_test_app().await;
-    sqlx::query_file!("tests/sql/accounts.sql")
-        .execute(app.db())
-        .await
-        .unwrap();
     let client = reqwest::Client::new();
     let user_token = super::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&user_token)
         .send()
         .await
@@ -103,7 +90,7 @@ async fn deposit_increases_balance() {
     let deposit_amount = 50;
     let deposit = Deposit::new(deposit_amount);
     let response = client
-        .post(format!("{}/api/accounts/4/deposits", app.address()))
+        .post(format!("{}/api/accounts/1/deposits", app.address()))
         .bearer_auth(&user_token)
         .json(&deposit)
         .send()
@@ -113,7 +100,7 @@ async fn deposit_increases_balance() {
     assert_eq!(StatusCode::OK, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&user_token)
         .send()
         .await
@@ -131,16 +118,12 @@ async fn deposit_increases_balance() {
 #[actix_rt::test]
 async fn withdraw_decreases_balance() {
     let app = spawn_test_app().await;
-    sqlx::query_file!("tests/sql/accounts.sql")
-        .execute(app.db())
-        .await
-        .unwrap();
     let client = reqwest::Client::new();
     let user_token = super::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
-        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&user_token)
         .send()
         .await
@@ -153,7 +136,7 @@ async fn withdraw_decreases_balance() {
     let withdrawal_amount = 50;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/4/withdrawals", app.address()))
+        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
         .bearer_auth(&user_token)
         .json(&withdrawal)
         .send()
@@ -162,7 +145,7 @@ async fn withdraw_decreases_balance() {
     assert_eq!(StatusCode::OK, response.status());
 
     let new_account: Account = client
-        .get(format!("{}/api/users/1/accounts/4", app.address()))
+        .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&user_token)
         .send()
         .await
@@ -180,10 +163,6 @@ async fn withdraw_decreases_balance() {
 #[actix_rt::test]
 async fn withdrawing_too_much_fails() {
     let app = spawn_test_app().await;
-    sqlx::query_file!("tests/sql/accounts.sql")
-        .execute(app.db())
-        .await
-        .unwrap();
     let client = reqwest::Client::new();
     let user_token = super::authenticate(&app, "user", "user").await;
 
@@ -191,7 +170,7 @@ async fn withdrawing_too_much_fails() {
     let withdrawal_amount = 500;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/4/withdrawals", app.address()))
+        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
         .bearer_auth(user_token)
         .json(&withdrawal)
         .send()

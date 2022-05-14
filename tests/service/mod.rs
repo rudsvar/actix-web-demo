@@ -3,6 +3,7 @@ use crate::common::TestApp;
 mod account_test;
 mod auth_test;
 mod security_test;
+mod user_test;
 
 pub async fn authenticate(app: &TestApp, username: &str, password: &str) -> String {
     let client = reqwest::Client::new();
