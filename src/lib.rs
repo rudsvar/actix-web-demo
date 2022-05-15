@@ -8,10 +8,12 @@
 //! A demo web service implemented with actix web.
 
 use crate::security::Role;
+use actix_cors::Cors;
 use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
+use graphql::schema::create_schema;
 use service::{
     client_context::client_context,
     health_check::health_check,
@@ -20,10 +22,12 @@ use service::{
 use sqlx::PgPool;
 use std::io;
 use std::net::TcpListener;
+use std::sync::Arc;
 use tracing_actix_web::TracingLogger;
 
 pub mod configuration;
 pub mod error;
+pub mod graphql;
 pub mod middleware;
 pub mod security;
 pub mod service;
@@ -34,7 +38,8 @@ pub type DbPool = PgPool;
 
 /// Starts a [`Server`].
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
-    let pool = web::Data::new(db_pool);
+    let pool = web::Data::new(db_pool.clone());
+    let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
         let auth = HttpAuthentication::bearer(security::validate_jwt);
         App::new()
@@ -43,6 +48,11 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             // Middleware to apply to all requests
             .wrap(middleware::RequestWrapper)
             .wrap(TracingLogger::default())
+            // GraphQL
+            .app_data(web::Data::from(schema.clone()))
+            .service(graphql::graphql)
+            .service(graphql::graphql_playground)
+            .wrap(Cors::permissive())
             // Health check
             .service(health_check)
             .service(request_token)

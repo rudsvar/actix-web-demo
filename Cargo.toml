@@ -6,10 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+# Actix
 actix-web = "4.0.1"
 actix-http = "3.0.4"
 actix-web-httpauth = "0.6.0"
 actix-web-grants = "3.0.0"
+actix-web-lab = "0.16.1"
+actix-cors = "0.6.1"
 
 tokio = "1.14.0"
 serde = "1.0.130"
@@ -21,6 +25,7 @@ uuid = { version = "1.0.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 thiserror = "1.0.30"
 
+# Tracing
 tracing = { version = "0.1.19", features = ["log"] }
 tracing-futures = "0.2.4"
 tracing-subscriber = { version = "0.3.4", features = [
@@ -31,15 +36,16 @@ tracing-subscriber = { version = "0.3.4", features = [
 tracing-bunyan-formatter = "0.3.1"
 tracing-log = "0.1.2"
 tracing-actix-web = "0.5.0-beta.6"
+console-subscriber = "0.1.3"
 
 derive_more = "0.99.17"
 futures = "0.3.19"
 bcrypt = "0.13.0"
 jsonwebtoken = "8.0.1"
 base64 = "0.13.0"
-console-subscriber = "0.1.3"
 validator = { version = "0.15.0", features = ["derive"] }
 async-trait = "0.1.53"
+juniper = "0.15.9"
 
 [dependencies.sqlx]
 version = "0.5.9"
