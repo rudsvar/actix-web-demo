@@ -8,6 +8,11 @@ use crate::{error::DbError, service::AppResult, DbPool};
 use actix_web::{web, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 
+/// Configures the account service.
+pub fn account_config(cfg: &mut web::ServiceConfig) {
+    cfg.service(post_account).service(get_account);
+}
+
 #[actix_web::post("/accounts")]
 #[has_roles(
     "Role::User",

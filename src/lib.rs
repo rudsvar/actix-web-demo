@@ -63,7 +63,7 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
             .service(
                 web::scope("/api")
                     .wrap(auth)
-                    .configure(service::account::account_config)
+                    .configure(service::account::account_api::account_config)
                     .configure(service::user::user_config)
                     .configure(service::deposit::deposit_config)
                     .configure(service::withdrawal::withdrawal_config)
