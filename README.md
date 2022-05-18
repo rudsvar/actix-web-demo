@@ -25,8 +25,8 @@ To customize the log level, use the `RUST_LOG` environment variable.
 
 # TODO
 
-- Add authorization with actix-web-grants https://github.com/DDtKey/actix-web-grants
-  Find some operation that only administrators should have.
-  Make sure users can only send from their own accounts.
-- Clean up logging, set better defaults. Maybe move away from the json format (or even better, make it configurable).
-- Generate OpenAPI contract and add Swagger UI.
+- Complete securing API with actix-web-grants.
+- More detailed logging.
+- Automated deployment.
+- Generate OpenAPI contract and add Swagger UI, utoipa is looking promising: https://github.com/juhaku/utoipa
+- Further develop GraphQL example.
