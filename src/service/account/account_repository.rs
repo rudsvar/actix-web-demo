@@ -1,15 +1,11 @@
 //! Utilities for interacting with the account table.
 
-use crate::error::DbError;
-use sqlx::PgExecutor;
+use crate::{error::DbError, Tx};
 
 use super::account_model::{Account, NewAccount};
 
 /// Insert a new account into the account table.
-pub async fn insert_account(
-    e: impl PgExecutor<'_>,
-    new_account: NewAccount,
-) -> Result<Account, DbError> {
+pub async fn insert_account(e: &mut Tx, new_account: NewAccount) -> Result<Account, DbError> {
     sqlx::query_as!(
         Account,
         r#"
@@ -27,7 +23,7 @@ pub async fn insert_account(
 }
 
 /// Fetch an account from the account table.
-pub async fn fetch_account(e: impl PgExecutor<'_>, id: i32) -> Result<Account, DbError> {
+pub async fn fetch_account(e: &mut Tx, id: i32) -> Result<Account, DbError> {
     sqlx::query_as!(Account, r#"SELECT * FROM accounts WHERE id = $1"#, id)
         .fetch_one(e)
         .await

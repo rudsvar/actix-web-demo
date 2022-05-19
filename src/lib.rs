@@ -19,7 +19,7 @@ use service::{
     health_check::health_check,
     token::{request_token, verify_token},
 };
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use std::io;
 use std::net::TcpListener;
 use std::sync::Arc;
@@ -35,6 +35,9 @@ pub mod validation;
 
 /// The database connection pool type used in the application.
 pub type DbPool = PgPool;
+
+/// The database transaction type.
+pub type Tx = Transaction<'static, Postgres>;
 
 /// Starts a [`Server`].
 pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
