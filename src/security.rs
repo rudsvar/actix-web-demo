@@ -68,7 +68,7 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     let token = jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &claims,
-        &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
+        &EncodingKey::from_secret(config.security.jwt_secret.as_bytes()),
     )
     .unwrap();
 
@@ -80,7 +80,7 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
     let config = crate::configuration::load_configuration()?;
     let decoded = jsonwebtoken::decode::<Claims>(
         token,
-        &DecodingKey::from_secret(config.jwt_secret.as_bytes()),
+        &DecodingKey::from_secret(config.security.jwt_secret.as_bytes()),
         &Validation::default(),
     )
     .map_err(|_| AppError::AuthenticationError)?;

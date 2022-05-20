@@ -5,21 +5,32 @@ use crate::error::AppError;
 /// Application settings.
 #[derive(Debug, serde:: Deserialize)]
 pub struct Settings {
-    /// The application http port.
+    /// Server settings.
     pub server: ServerSettings,
-    /// JSON Web Token secret
-    pub jwt_secret: String,
-    /// The database settings.
+    /// Security settings.
+    pub security: SecuritySettings,
+    /// Database settings.
     pub database: DatabaseSettings,
 }
 
 /// Server settings.
 #[derive(Clone, Copy, Debug, serde:: Deserialize)]
 pub struct ServerSettings {
-    /// The application http port.
+    /// Server http port.
     pub http_port: u16,
-    /// The application https port.
+    /// Server https port.
     pub https_port: u16,
+}
+
+/// Security settings.
+#[derive(Clone, Debug, serde:: Deserialize)]
+pub struct SecuritySettings {
+    /// JSON Web Token secret.
+    pub jwt_secret: String,
+    /// TLS certificate.
+    pub certificate: String,
+    /// TLS private key.
+    pub private_key: String,
 }
 
 /// Database settings.

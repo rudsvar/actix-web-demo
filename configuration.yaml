@@ -2,7 +2,10 @@ server:
   http_port: 8080
   https_port: 8443
 
-jwt_secret: "secret"
+security:
+  jwt_secret: "secret"
+  certificate: "test-cert.pem"
+  private_key: "test-key.pem"
 
 database:
   host: "localhost"

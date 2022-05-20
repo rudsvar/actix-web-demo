@@ -108,13 +108,16 @@ async fn admin() -> HttpResponse {
 
 fn load_rustls_config() -> rustls::ServerConfig {
     // init server config builder with safe defaults
-    let config = ServerConfig::builder()
+    let rustls_config = ServerConfig::builder()
         .with_safe_defaults()
         .with_no_client_auth();
 
+    let app_config =
+        crate::configuration::load_configuration().expect("could not load configuration");
+
     // load TLS key/cert files
-    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
-    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
+    let cert_file = &mut BufReader::new(File::open(app_config.security.certificate).unwrap());
+    let key_file = &mut BufReader::new(File::open(app_config.security.private_key).unwrap());
 
     // convert files to key/cert objects
     let cert_chain = certs(cert_file)
@@ -134,5 +137,7 @@ fn load_rustls_config() -> rustls::ServerConfig {
         std::process::exit(1);
     }
 
-    config.with_single_cert(cert_chain, keys.remove(0)).unwrap()
+    rustls_config
+        .with_single_cert(cert_chain, keys.remove(0))
+        .unwrap()
 }
