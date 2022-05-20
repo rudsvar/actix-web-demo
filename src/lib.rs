@@ -14,13 +14,16 @@ use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use graphql::schema::create_schema;
+use rustls::{Certificate, PrivateKey, ServerConfig};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use service::{
     client_context::client_context,
     health_check::health_check,
     token::{request_token, verify_token},
 };
 use sqlx::{PgPool, Postgres, Transaction};
-use std::io;
+use std::fs::File;
+use std::io::{self, BufReader};
 use std::net::TcpListener;
 use std::sync::Arc;
 use tracing_actix_web::TracingLogger;
@@ -40,7 +43,17 @@ pub type DbPool = PgPool;
 pub type Tx = Transaction<'static, Postgres>;
 
 /// Starts a [`Server`].
-pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
+pub fn run_app(
+    http_listener: TcpListener,
+    https_listener: TcpListener,
+    db_pool: DbPool,
+) -> io::Result<Server> {
+    tracing::info!(
+        "Starting application on address {} and {}",
+        http_listener.local_addr().unwrap(),
+        https_listener.local_addr().unwrap()
+    );
+    let config = load_rustls_config();
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
@@ -76,7 +89,9 @@ pub fn run_app(listener: TcpListener, db_pool: DbPool) -> io::Result<Server> {
                     .route("/admin", web::get().to(admin)),
             )
     })
-    .listen(listener)?
+    .listen(http_listener)?
+    .listen_rustls(https_listener, config)?
+    // .bind_rustls("127.0.0.1:8443", config)?
     .run();
     Ok(server)
 }
@@ -89,4 +104,35 @@ async fn user() -> HttpResponse {
 #[has_roles("Role::Admin", type = "Role")]
 async fn admin() -> HttpResponse {
     HttpResponse::Ok().body("Hello admin!".to_string())
+}
+
+fn load_rustls_config() -> rustls::ServerConfig {
+    // init server config builder with safe defaults
+    let config = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth();
+
+    // load TLS key/cert files
+    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
+    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
+
+    // convert files to key/cert objects
+    let cert_chain = certs(cert_file)
+        .unwrap()
+        .into_iter()
+        .map(Certificate)
+        .collect();
+    let mut keys: Vec<PrivateKey> = pkcs8_private_keys(key_file)
+        .unwrap()
+        .into_iter()
+        .map(PrivateKey)
+        .collect();
+
+    // exit if no keys could be parsed
+    if keys.is_empty() {
+        eprintln!("Could not locate PKCS 8 private keys.");
+        std::process::exit(1);
+    }
+
+    config.with_single_cert(cert_chain, keys.remove(0)).unwrap()
 }

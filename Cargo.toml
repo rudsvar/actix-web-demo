@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 
 # Actix
-actix-web = "4.0.1"
+actix-web = { version = "4.0.1", features = ["rustls"] }
 actix-http = "3.0.4"
 actix-web-httpauth = "0.6.0"
 actix-web-grants = "3.0.0"
@@ -44,6 +44,8 @@ bcrypt = "0.13.0"
 jsonwebtoken = "8.0.1"
 base64 = "0.13.0"
 validator = { version = "0.15.0", features = ["derive"] }
+rustls = "0.20.6"
+rustls-pemfile = "1.0.0"
 
 [dependencies.sqlx]
 version = "0.5.9"

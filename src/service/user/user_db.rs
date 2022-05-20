@@ -112,7 +112,5 @@ pub async fn fetch_roles(conn: impl PgExecutor<'_>, username: &str) -> Result<Ve
     }
     roles.append(&mut extra_roles);
 
-    tracing::debug!("Found roles {:?} for `{}`", roles, username);
-
     Ok(roles)
 }

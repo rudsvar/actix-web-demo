@@ -62,13 +62,17 @@ pub async fn test_db(mut database_settings: DatabaseSettings) -> DbPool {
 pub async fn spawn_test_app() -> TestApp {
     Lazy::force(&TRACING);
 
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", port);
+    // Create http listener
+    let http_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let https_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+
+    // Only need http for tests
+    let address = format!("http://{}", http_listener.local_addr().unwrap());
 
     let configuration = load_configuration().expect("Failed to read configuration");
     let db = test_db(configuration.database).await;
-    let server = actix_web_demo::run_app(listener, db.clone()).expect("Failed to bind address");
+    let server = actix_web_demo::run_app(http_listener, https_listener, db.clone())
+        .expect("Failed to bind address");
     let _ = tokio::spawn(server);
 
     TestApp { address, db }
