@@ -7,6 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
+use crate::middleware::SignatureFilter;
 use crate::security::jwt::Role;
 use actix_cors::Cors;
 use actix_web::HttpResponse;
@@ -87,6 +88,11 @@ pub fn run_app(
                     // Secure endpoints
                     .route("/user", web::get().to(user))
                     .route("/admin", web::get().to(admin)),
+            )
+            .service(
+                web::scope("/signature")
+                    .wrap(SignatureFilter)
+                    .route("", web::get().to(HttpResponse::Ok)),
             )
     })
     .listen(http_listener)?

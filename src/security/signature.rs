@@ -9,10 +9,10 @@ use openssl::{
     pkey::{PKey, Private, Public},
     sign::{Signer, Verifier},
 };
-use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
+use std::{collections::HashMap, fmt::Display, fs::File, io::Read, str::FromStr};
 
 /// Signature keyId="foo", algorithm="rsa-sha256", headers="x-request-id tpp-redirect-uri digest foo psu-id", signature=
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Signature {
     key_id: String,
     algorithm: String,
@@ -29,6 +29,30 @@ impl Signature {
             headers,
             signature,
         }
+    }
+
+    /// Get a reference to the signature's key id.
+    #[must_use]
+    pub fn key_id(&self) -> &str {
+        self.key_id.as_ref()
+    }
+
+    /// Get a reference to the signature's algorithm.
+    #[must_use]
+    pub fn algorithm(&self) -> &str {
+        self.algorithm.as_ref()
+    }
+
+    /// Get a reference to the signature's headers.
+    #[must_use]
+    pub fn headers(&self) -> &[String] {
+        self.headers.as_ref()
+    }
+
+    /// Get a reference to the signature's signature.
+    #[must_use]
+    pub fn signature(&self) -> &str {
+        self.signature.as_ref()
     }
 }
 
@@ -48,6 +72,35 @@ impl Display for Signature {
             f,
             r#"Signature keyId="{key_id}", algorithm="{algorithm}", headers="{headers}", signature="{signature}""#
         )
+    }
+}
+
+impl FromStr for Signature {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let without_signature = s.trim_start_matches("Signature ");
+        let mut map = HashMap::new();
+        for kv in without_signature.split(", ") {
+            let mut kv = kv.split('=');
+            let key = kv.next().unwrap();
+            let value = kv.next().unwrap().trim_matches('"');
+            map.insert(key, value);
+        }
+
+        let signature = Signature {
+            key_id: map.get("keyId").unwrap().to_string(),
+            algorithm: map.get("algorithm").unwrap().to_string(),
+            headers: map
+                .get("headers")
+                .unwrap()
+                .split(' ')
+                .map(|s| s.to_string())
+                .collect(),
+            signature: map.get("signature").unwrap().to_string(),
+        };
+
+        Ok(signature)
     }
 }
 
@@ -158,14 +211,32 @@ x-example: Example header with some whitespace."#,
             "ecdsa-sha256".to_string(),
             vec![
                 "(request-target)".to_string(),
-                "Date".to_string(),
-                "Digest".to_string(),
+                "date".to_string(),
+                "digest".to_string(),
             ],
             "KJdh1i2&YD7yo8172i".to_string(),
         );
         assert_eq!(
             r#"Signature keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#,
             signature.to_string()
+        )
+    }
+
+    #[test]
+    fn signature_from_str() {
+        let signature = Signature::new(
+            "abc123".to_string(),
+            "ecdsa-sha256".to_string(),
+            vec![
+                "(request-target)".to_string(),
+                "date".to_string(),
+                "digest".to_string(),
+            ],
+            "KJdh1i2&YD7yo8172i".to_string(),
+        );
+        assert_eq!(
+            Ok(signature),
+            r#"Signature keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#.parse(),
         )
     }
 }
