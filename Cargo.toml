@@ -15,6 +15,9 @@ actix-web-grants = "3.0.0"
 actix-web-lab = "0.16.1"
 actix-cors = "0.6.1"
 
+# Tools
+itertools = "0.10.3"
+
 tokio = "1.14.0"
 serde = "1.0.130"
 serde_json = "1.0.78"
@@ -46,6 +49,7 @@ base64 = "0.13.0"
 validator = { version = "0.15.0", features = ["derive"] }
 rustls = "0.20.6"
 rustls-pemfile = "1.0.0"
+openssl = "0.10.40"
 
 [dependencies.sqlx]
 version = "0.5.9"

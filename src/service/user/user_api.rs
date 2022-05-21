@@ -4,7 +4,7 @@ use super::{
     user_db::{fetch_all_users, fetch_user_by_id, store_user},
     user_model::NewUser,
 };
-use crate::security::{Claims, Role};
+use crate::security::jwt::{Claims, Role};
 use crate::{error::AppError, DbPool};
 use actix_web::{
     web::{Data, Json, Path, ReqData},

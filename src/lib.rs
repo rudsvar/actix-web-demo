@@ -7,7 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
-use crate::security::Role;
+use crate::security::jwt::Role;
 use actix_cors::Cors;
 use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
@@ -57,7 +57,7 @@ pub fn run_app(
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(security::validate_jwt);
+        let auth = HttpAuthentication::bearer(security::jwt::validate_jwt);
         App::new()
             // Database pool
             .app_data(pool.clone())

@@ -3,7 +3,7 @@
 use super::AppResult;
 use crate::{
     error::AppError,
-    security::{decode_jwt, encode_jwt},
+    security::jwt::{decode_jwt, encode_jwt},
     DbPool,
 };
 use actix_web::{web::Data, HttpResponse};

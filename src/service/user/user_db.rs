@@ -3,7 +3,7 @@
 use super::user_model::NewUser;
 use crate::{
     error::DbError,
-    security::Role,
+    security::jwt::Role,
     service::user::user_model::{HashedPassword, User},
 };
 use sqlx::PgExecutor;

@@ -1,7 +1,7 @@
 //! An API for creating and modifying accounts.
 
 use crate::error::AppError;
-use crate::security::{Claims, Role};
+use crate::security::jwt::{Claims, Role};
 use crate::service::account::account_model::NewAccount;
 use crate::service::account::account_repository;
 use crate::{error::DbError, service::AppResult, DbPool};

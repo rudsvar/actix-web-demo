@@ -93,7 +93,7 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
 ///
 /// ```
 /// # use actix_web_httpauth::middleware::HttpAuthentication;
-/// # use actix_web_demo::security::validate_jwt;
+/// # use actix_web_demo::security::jwt::validate_jwt;
 /// let auth = HttpAuthentication::bearer(validate_jwt);
 /// ```
 pub async fn validate_jwt(
