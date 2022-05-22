@@ -120,22 +120,42 @@ impl FromStr for SignatureHeader {
     }
 }
 
-/// Loads the specified private key.
-pub fn load_private_key(path: &str) -> PKey<Private> {
-    let mut file = File::open(path).unwrap();
+/// An error that happened while loading a key.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+pub enum KeyLoadError {
+    /// Key file does not exist.
+    #[error("key file does not exist")]
+    NoSuchFile,
+    /// Failed to read key file.
+    #[error("failed to read key file")]
+    ReadError,
+    /// The key file format is wrong.
+    #[error("key file format is wrong")]
+    KeyFormatError,
+}
+
+fn load_key(path: &str) -> Result<Vec<u8>, KeyLoadError> {
+    let mut file = File::open(path).map_err(|_| KeyLoadError::NoSuchFile)?;
     let mut buf = vec![];
-    file.read_to_end(&mut buf).unwrap();
-    let ec_key = EcKey::private_key_from_pem(&buf).unwrap();
-    PKey::from_ec_key(ec_key).unwrap()
+    file.read_to_end(&mut buf)
+        .map_err(|_| KeyLoadError::ReadError)?;
+    Ok(buf)
+}
+
+/// Loads the specified private key.
+pub fn load_private_key(path: &str) -> Result<PKey<Private>, KeyLoadError> {
+    let buf = load_key(path)?;
+    let ec_key = EcKey::private_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
+    let key = PKey::from_ec_key(ec_key).map_err(|_| KeyLoadError::KeyFormatError)?;
+    Ok(key)
 }
 
 /// Loads the specified public key.
-pub fn load_public_key(path: &str) -> PKey<Public> {
-    let mut file = File::open(path).unwrap();
-    let mut buf = vec![];
-    file.read_to_end(&mut buf).unwrap();
-    let ec_key = EcKey::public_key_from_pem(&buf).unwrap();
-    PKey::from_ec_key(ec_key).unwrap()
+pub fn load_public_key(path: &str) -> Result<PKey<Public>, KeyLoadError> {
+    let buf = load_key(path)?;
+    let ec_key = EcKey::public_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
+    let key = PKey::from_ec_key(ec_key).map_err(|_| KeyLoadError::KeyFormatError)?;
+    Ok(key)
 }
 
 /// Creates the signature of the provided data.
@@ -208,19 +228,19 @@ x-example: Example header with some whitespace."#,
     #[test]
     fn verify_signature_works() {
         let data = b"hello there";
-        let private_key = load_private_key("./tests/test-signing-key.pem");
+        let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
         let signature = sign(data, private_key);
-        let public_key = load_public_key("./key_repository/test.pem");
+        let public_key = load_public_key("./key_repository/test.pem").unwrap();
         assert!(verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
-        let private_key = load_private_key("./tests/test-signing-key.pem");
+        let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
         let signature = sign(data, private_key);
         let modified_data = b"hello bar";
-        let public_key = load_public_key("./key_repository/test.pem");
+        let public_key = load_public_key("./key_repository/test.pem").unwrap();
         assert!(!verify(modified_data, &signature, public_key))
     }
 

@@ -46,11 +46,17 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     let provided_signature =
         base64::decode(signature_header.signature()).map_err(|_| HttpResponse::BadRequest())?;
 
-    // Decrypt provided signature with client's public key, and make sure it matches the signature string
+    // Load public key associated with the keyId
     let public_key = signature::load_public_key(&format!(
         "./key_repository/{}.pem",
         signature_header.key_id()
-    ));
+    ))
+    .map_err(|_| {
+        tracing::warn!("Public key does not exist");
+        HttpResponse::Unauthorized()
+    })?;
+
+    // Decrypt provided signature with client's public key, and make sure it matches the signature string
     let verified = signature::verify(signature_string.as_bytes(), &provided_signature, public_key);
     if verified {
         tracing::info!("Signature validation succeeded");
