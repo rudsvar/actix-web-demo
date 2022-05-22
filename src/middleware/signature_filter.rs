@@ -30,12 +30,12 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
 
     // Collect headers to sign
     let mut headers_to_sign: HashMap<&str, Vec<&str>> = HashMap::new();
-    let mandatory_headers = vec![];
+    let mandatory_headers = vec!["(request-target)"];
     for &h in &mandatory_headers {
         let values: Vec<&str> = header_map.get_all(h).map(|h| h.to_str().unwrap()).collect();
         headers_to_sign.insert(h, values);
     }
-    let request_target = format!("{} {}", req.method(), req.uri());
+    let request_target = format!("{} {}", req.method().to_string().to_lowercase(), req.uri());
     headers_to_sign.insert("(request-target)", vec![request_target.as_str()]);
 
     // Compute the expected signature string
