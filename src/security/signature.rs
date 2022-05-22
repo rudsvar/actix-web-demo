@@ -208,19 +208,19 @@ x-example: Example header with some whitespace."#,
     #[test]
     fn verify_signature_works() {
         let data = b"hello there";
-        let private_key = load_private_key("./keys/private.pem");
+        let private_key = load_private_key("./tests/test-signing-key.pem");
         let signature = sign(data, private_key);
-        let public_key = load_public_key("./keys/public.pem");
+        let public_key = load_public_key("./key_repository/test.pem");
         assert!(verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
-        let private_key = load_private_key("./keys/private.pem");
+        let private_key = load_private_key("./tests/test-signing-key.pem");
         let signature = sign(data, private_key);
         let modified_data = b"hello bar";
-        let public_key = load_public_key("./keys/public.pem");
+        let public_key = load_public_key("./key_repository/test.pem");
         assert!(!verify(modified_data, &signature, public_key))
     }
 

@@ -46,8 +46,10 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     let provided_signature = base64::decode(signature_header.signature()).unwrap();
 
     // Decrypt provided signature with client's public key, and make sure it matches the signature string
-    let public_key =
-        signature::load_public_key(&format!("./keys/{}.pem", signature_header.key_id()));
+    let public_key = signature::load_public_key(&format!(
+        "./key_repository/{}.pem",
+        signature_header.key_id()
+    ));
     let verified = signature::verify(signature_string.as_bytes(), &provided_signature, public_key);
     if verified {
         tracing::info!("Signature validation succeeded");

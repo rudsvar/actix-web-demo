@@ -12,14 +12,14 @@ async fn signed_request_works() {
 
     let headers_to_sign = vec!["(request-target)"];
 
-    let private_key = signature::load_private_key("./keys/private.pem");
+    let private_key = signature::load_private_key("./tests/test-signing-key.pem");
     let mut headers = HashMap::new();
     headers.insert("(request-header)", vec!["get /signature"]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let signature = signature::sign(signature_string.as_bytes(), private_key);
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
-        "public".to_string(),
+        "test".to_string(),
         "ecdsa-sha256".to_string(),
         headers_to_sign
             .iter()
