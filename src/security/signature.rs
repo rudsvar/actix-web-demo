@@ -13,14 +13,14 @@ use std::{collections::HashMap, fmt::Display, fs::File, io::Read, str::FromStr};
 
 /// Signature keyId="foo", algorithm="rsa-sha256", headers="x-request-id tpp-redirect-uri digest foo psu-id", signature=
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Signature {
+pub struct SignatureHeader {
     key_id: String,
     algorithm: String,
     headers: Vec<String>,
     signature: String,
 }
 
-impl Signature {
+impl SignatureHeader {
     /// Creates a new signature header value.
     pub fn new(key_id: String, algorithm: String, headers: Vec<String>, signature: String) -> Self {
         Self {
@@ -56,7 +56,7 @@ impl Signature {
     }
 }
 
-impl Display for Signature {
+impl Display for SignatureHeader {
     #[allow(unstable_name_collisions)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let key_id = &self.key_id;
@@ -75,29 +75,45 @@ impl Display for Signature {
     }
 }
 
-impl FromStr for Signature {
-    type Err = ();
+/// An error that occurs during parsing of a signature header.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SignatureHeaderParseError;
+
+impl FromStr for SignatureHeader {
+    type Err = SignatureHeaderParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let without_signature = s.trim_start_matches("Signature ");
         let mut map = HashMap::new();
         for kv in without_signature.split(", ") {
             let mut kv = kv.split('=');
-            let key = kv.next().unwrap();
-            let value = kv.next().unwrap().trim_matches('"');
+            let key = kv.next().ok_or(SignatureHeaderParseError)?;
+            let value = kv
+                .next()
+                .ok_or(SignatureHeaderParseError)?
+                .trim_matches('"');
             map.insert(key, value);
         }
 
-        let signature = Signature {
-            key_id: map.get("keyId").unwrap().to_string(),
-            algorithm: map.get("algorithm").unwrap().to_string(),
+        let signature = SignatureHeader {
+            key_id: map
+                .get("keyId")
+                .ok_or(SignatureHeaderParseError)?
+                .to_string(),
+            algorithm: map
+                .get("algorithm")
+                .ok_or(SignatureHeaderParseError)?
+                .to_string(),
             headers: map
                 .get("headers")
-                .unwrap()
+                .ok_or(SignatureHeaderParseError)?
                 .split(' ')
                 .map(|s| s.to_string())
                 .collect(),
-            signature: map.get("signature").unwrap().to_string(),
+            signature: map
+                .get("signature")
+                .ok_or(SignatureHeaderParseError)?
+                .to_string(),
         };
 
         Ok(signature)
@@ -158,7 +174,7 @@ pub fn signature_string(header_order: &[&str], headers: &HashMap<&str, Vec<&str>
 
 #[cfg(test)]
 mod tests {
-    use super::{sign, signature_string, verify, Signature};
+    use super::{sign, signature_string, verify, SignatureHeader};
     use std::collections::HashMap;
 
     #[test]
@@ -206,7 +222,7 @@ x-example: Example header with some whitespace."#,
 
     #[test]
     fn signature_display_impl() {
-        let signature = Signature::new(
+        let signature = SignatureHeader::new(
             "abc123".to_string(),
             "ecdsa-sha256".to_string(),
             vec![
@@ -224,7 +240,7 @@ x-example: Example header with some whitespace."#,
 
     #[test]
     fn signature_from_str() {
-        let signature = Signature::new(
+        let signature = SignatureHeader::new(
             "abc123".to_string(),
             "ecdsa-sha256".to_string(),
             vec![

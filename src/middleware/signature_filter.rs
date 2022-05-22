@@ -1,6 +1,6 @@
 //! Middleware for appending headers to responses.
 
-use crate::security::signature::{self, Signature};
+use crate::security::signature::{self, SignatureHeader};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::{
     future::{LocalBoxFuture, Ready},
@@ -28,9 +28,9 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let headers = req.headers();
         tracing::info!("Getting authorization header");
-        let signature = headers.get("Authorization").unwrap().to_str().unwrap();
-        let signature: Signature = signature.parse().unwrap();
-        tracing::info!("Got signature {}", signature);
+        let signature_header = headers.get("Authorization").unwrap().to_str().unwrap();
+        let signature_header: SignatureHeader = signature_header.parse().unwrap();
+        tracing::info!("Got signature {}", signature_header);
         let mut headers2: HashMap<&str, Vec<&str>> = HashMap::new();
         let mandatory_headers = vec![];
         for &h in &mandatory_headers {
@@ -40,11 +40,10 @@ where
         let request_target = format!("{} {}", req.method(), req.uri());
         headers2.insert("(request-target)", vec![request_target.as_str()]);
         let signature_string = signature::signature_string(&mandatory_headers, &headers2);
-        tracing::info!("Signature string is {}", signature_string);
-        tracing::info!("Verifying signature");
+        tracing::info!("Verifying signature string {}", signature_string);
         let actual_signature = base64::encode(signature::sign(signature_string.as_bytes()));
         tracing::info!("Actual signature in base64 {}", actual_signature);
-        let provided_signature = base64::decode(signature.signature()).unwrap();
+        let provided_signature = base64::decode(signature_header.signature()).unwrap();
         let verified = signature::verify(signature_string.as_bytes(), &provided_signature);
         let res = self.service.call(req);
         async move {
