@@ -139,17 +139,15 @@ pub fn load_public_key(path: &str) -> PKey<Public> {
 }
 
 /// Creates the signature of the provided data.
-pub fn sign(data: &[u8]) -> Vec<u8> {
-    let privkey = load_private_key("./keys/private.pem");
-    let mut signer = Signer::new(MessageDigest::sha256(), &privkey).unwrap();
+pub fn sign(data: &[u8], private_key: PKey<Private>) -> Vec<u8> {
+    let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
     signer.update(data).unwrap();
     signer.sign_to_vec().unwrap()
 }
 
 /// Uses a signature to verify the provided data.
-pub fn verify(data: &[u8], signature: &[u8]) -> bool {
-    let pubkey = load_public_key("./keys/public.pem");
-    let mut verifier = Verifier::new(MessageDigest::sha256(), &pubkey).unwrap();
+pub fn verify(data: &[u8], signature: &[u8], public_key: PKey<Public>) -> bool {
+    let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key).unwrap();
     verifier.update(data).unwrap();
     verifier.verify(signature).unwrap()
 }
@@ -174,7 +172,9 @@ pub fn signature_string(header_order: &[&str], headers: &HashMap<&str, Vec<&str>
 
 #[cfg(test)]
 mod tests {
-    use super::{sign, signature_string, verify, SignatureHeader};
+    use super::{
+        load_private_key, load_public_key, sign, signature_string, verify, SignatureHeader,
+    };
     use std::collections::HashMap;
 
     #[test]
@@ -208,16 +208,20 @@ x-example: Example header with some whitespace."#,
     #[test]
     fn verify_signature_works() {
         let data = b"hello there";
-        let signature = sign(data);
-        assert!(verify(data, &signature))
+        let private_key = load_private_key("./keys/private.pem");
+        let signature = sign(data, private_key);
+        let public_key = load_public_key("./keys/public.pem");
+        assert!(verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
-        let signature = sign(data);
+        let private_key = load_private_key("./keys/private.pem");
+        let signature = sign(data, private_key);
         let modified_data = b"hello bar";
-        assert!(!verify(modified_data, &signature))
+        let public_key = load_public_key("./keys/public.pem");
+        assert!(!verify(modified_data, &signature, public_key))
     }
 
     #[test]
