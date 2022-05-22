@@ -17,15 +17,16 @@ pub struct SignatureFilterService<S> {
 
 fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     let header_map = req.headers();
+
     tracing::info!("Getting authorization header");
     let signature_header = header_map
         .get("Authorization")
         .ok_or_else(HttpResponse::Unauthorized)?
         .to_str()
-        .map_err(|_| HttpResponse::Unauthorized())?;
+        .map_err(|_| HttpResponse::BadRequest())?;
     let signature_header: SignatureHeader = signature_header
         .parse()
-        .map_err(|_| HttpResponse::Unauthorized())?;
+        .map_err(|_| HttpResponse::BadRequest())?;
     tracing::info!("Got signature header {}", signature_header);
 
     // Collect headers to sign
@@ -57,7 +58,8 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     })?;
 
     // Decrypt provided signature with client's public key, and make sure it matches the signature string
-    let verified = signature::verify(signature_string.as_bytes(), &provided_signature, public_key);
+    let verified = signature::verify(signature_string.as_bytes(), &provided_signature, public_key)
+        .map_err(|_| HttpResponse::Unauthorized())?;
     if verified {
         tracing::info!("Signature validation succeeded");
         Ok(())

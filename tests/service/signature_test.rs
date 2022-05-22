@@ -16,7 +16,7 @@ async fn signed_request_works() {
     headers.insert("(request-target)", vec!["get /signature"]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key);
+    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),
@@ -50,7 +50,7 @@ async fn edited_signed_request_fails() {
     headers.insert("(request-target)", vec!["get /not-signature"]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key);
+    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),
@@ -84,7 +84,7 @@ async fn signed_with_wrong_key_fails() {
     headers.insert("(request-target)", vec!["get /signature"]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/wrong-test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key);
+    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),

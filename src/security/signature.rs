@@ -158,18 +158,35 @@ pub fn load_public_key(path: &str) -> Result<PKey<Public>, KeyLoadError> {
     Ok(key)
 }
 
+/// Failed to sign the message.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("failed to sign message")]
+pub struct SignError;
+
 /// Creates the signature of the provided data.
-pub fn sign(data: &[u8], private_key: PKey<Private>) -> Vec<u8> {
-    let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
-    signer.update(data).unwrap();
-    signer.sign_to_vec().unwrap()
+pub fn sign(message: &[u8], private_key: PKey<Private>) -> Result<Vec<u8>, SignError> {
+    let mut signer = Signer::new(MessageDigest::sha256(), &private_key).map_err(|_| SignError)?;
+    signer.update(message).map_err(|_| SignError)?;
+    let signature = signer.sign_to_vec().map_err(|_| SignError)?;
+    Ok(signature)
 }
 
+/// Failed to sign the message.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("failed to verify message")]
+pub struct VerifyError;
+
 /// Uses a signature to verify the provided data.
-pub fn verify(data: &[u8], signature: &[u8], public_key: PKey<Public>) -> bool {
-    let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key).unwrap();
-    verifier.update(data).unwrap();
-    verifier.verify(signature).unwrap()
+pub fn verify(
+    message: &[u8],
+    signature: &[u8],
+    public_key: PKey<Public>,
+) -> Result<bool, VerifyError> {
+    let mut verifier =
+        Verifier::new(MessageDigest::sha256(), &public_key).map_err(|_| VerifyError)?;
+    verifier.update(message).map_err(|_| VerifyError)?;
+    let verified = verifier.verify(signature).map_err(|_| VerifyError)?;
+    Ok(verified)
 }
 
 /// Compute the signature string used to create a signature.
@@ -229,19 +246,19 @@ x-example: Example header with some whitespace."#,
     fn verify_signature_works() {
         let data = b"hello there";
         let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
-        let signature = sign(data, private_key);
+        let signature = sign(data, private_key).unwrap();
         let public_key = load_public_key("./key_repository/test.pem").unwrap();
-        assert!(verify(data, &signature, public_key))
+        assert_eq!(Ok(true), verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
         let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
-        let signature = sign(data, private_key);
+        let signature = sign(data, private_key).unwrap();
         let modified_data = b"hello bar";
         let public_key = load_public_key("./key_repository/test.pem").unwrap();
-        assert!(!verify(modified_data, &signature, public_key))
+        assert_eq!(Ok(false), verify(modified_data, &signature, public_key))
     }
 
     #[test]
