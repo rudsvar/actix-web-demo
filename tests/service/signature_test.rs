@@ -108,6 +108,34 @@ async fn signed_with_wrong_key_fails() {
 }
 
 #[actix_rt::test]
+async fn invalid_signature_string_fails() {
+    let app = spawn_test_app().await;
+    let client = reqwest::Client::new();
+
+    let headers_to_sign = vec!["(request-target)"];
+
+    let signature_header = SignatureHeader::new(
+        "test".to_string(),
+        "ecdsa-sha256".to_string(),
+        headers_to_sign
+            .iter()
+            .cloned()
+            .map(|s| s.to_string())
+            .collect(),
+        "invalid_signature_string".to_string(),
+    );
+
+    let response = client
+        .get(format!("{}/signature", app.address()))
+        .header("Authorization", signature_header.to_string())
+        .send()
+        .await
+        .expect("failed to execute request");
+
+    assert_eq!(StatusCode::BAD_REQUEST, response.status());
+}
+
+#[actix_rt::test]
 async fn unsigned_request_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();

@@ -43,7 +43,8 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     tracing::info!("Verifying signature string {}", signature_string);
 
     // Get the provided signature
-    let provided_signature = base64::decode(signature_header.signature()).unwrap();
+    let provided_signature =
+        base64::decode(signature_header.signature()).map_err(|_| HttpResponse::BadRequest())?;
 
     // Decrypt provided signature with client's public key, and make sure it matches the signature string
     let public_key = signature::load_public_key(&format!(
