@@ -53,7 +53,7 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     let roles = user_db::fetch_roles(conn, username).await?;
 
     // Set claims
-    let in_one_minute = Utc::now() + Duration::minutes(1);
+    let in_one_minute = Utc::now() + Duration::hours(1);
     let exp = in_one_minute.naive_utc().timestamp();
     let claims = Claims {
         id: user_id,
