@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
-use actix_http::StatusCode;
+use actix_http::{header::HttpDate, StatusCode};
 use actix_web_demo::security::signature::{self, SignatureHeader};
+use std::{collections::HashMap, time::SystemTime};
 
 use crate::common::spawn_test_app;
 
@@ -10,10 +9,12 @@ async fn signed_request_works() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)"];
+    let headers_to_sign = vec!["(request-target)", "date"];
+    let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = HashMap::new();
     headers.insert("(request-target)", vec!["get /signature"]);
+    headers.insert("date", vec![&date]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
@@ -32,6 +33,7 @@ async fn signed_request_works() {
     let response = client
         .get(format!("{}/signature", app.address()))
         .header("Authorization", signature_header.to_string())
+        .header("Date", date)
         .send()
         .await
         .expect("failed to execute request");
@@ -44,10 +46,12 @@ async fn edited_signed_request_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)"];
+    let headers_to_sign = vec!["(request-target)", "date"];
+    let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = HashMap::new();
     headers.insert("(request-target)", vec!["get /not-signature"]);
+    headers.insert("date", vec![&date]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
@@ -66,6 +70,7 @@ async fn edited_signed_request_fails() {
     let response = client
         .get(format!("{}/signature", app.address()))
         .header("Authorization", signature_header.to_string())
+        .header("Date", date)
         .send()
         .await
         .expect("failed to execute request");
@@ -78,10 +83,12 @@ async fn signed_with_wrong_key_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)"];
+    let headers_to_sign = vec!["(request-target)", "date"];
+    let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = HashMap::new();
     headers.insert("(request-target)", vec!["get /signature"]);
+    headers.insert("date", vec![&date]);
     let signature_string = signature::signature_string(&headers_to_sign, &headers);
     let private_key = signature::load_private_key("./tests/wrong-test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
@@ -100,6 +107,7 @@ async fn signed_with_wrong_key_fails() {
     let response = client
         .get(format!("{}/signature", app.address()))
         .header("Authorization", signature_header.to_string())
+        .header("Date", date)
         .send()
         .await
         .expect("failed to execute request");

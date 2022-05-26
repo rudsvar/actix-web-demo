@@ -31,13 +31,15 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
 
     // Collect headers to sign
     let mut headers_to_sign: HashMap<&str, Vec<&str>> = HashMap::new();
-    let mandatory_headers = vec!["(request-target)"];
+    let mandatory_headers = vec!["(request-target)", "date"];
     for &h in &mandatory_headers {
         let values: Vec<&str> = header_map.get_all(h).map(|h| h.to_str().unwrap()).collect();
         headers_to_sign.insert(h, values);
     }
     let request_target = format!("{} {}", req.method().to_string().to_lowercase(), req.uri());
     headers_to_sign.insert("(request-target)", vec![request_target.as_str()]);
+
+    tracing::info!("Headers to sign: {:?}", headers_to_sign);
 
     // Compute the expected signature string
     let signature_string = signature::signature_string(&mandatory_headers, &headers_to_sign);
