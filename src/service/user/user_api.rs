@@ -7,10 +7,15 @@ use super::{
 use crate::security::jwt::{Claims, Role};
 use crate::{error::AppError, DbPool};
 use actix_web::{
-    web::{Data, Json, Path, ReqData},
+    web::{self, Data, Json, Path, ReqData},
     HttpResponse,
 };
 use actix_web_grants::proc_macro::has_roles;
+
+/// Configure the user service.
+pub fn user_config(cfg: &mut web::ServiceConfig) {
+    cfg.service(post_user).service(get_user).service(list_users);
+}
 
 #[actix_web::post("/users")]
 #[has_roles("Role::Admin", type = "Role")]

@@ -1,17 +1,19 @@
 //! An API for creating and modifying accounts.
 
-use crate::error::AppError;
+use crate::error::{AppError, ServiceError};
 use crate::security::jwt::{Claims, Role};
-use crate::service::account::account_model::NewAccount;
-use crate::service::account::account_repository;
-use crate::AppResult;
+use crate::service::account::account_model::{Deposit, NewAccount, Withdrawal};
 use crate::{error::DbError, DbPool};
+use crate::{service::account::account_repository, AppResult};
 use actix_web::{web, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 
 /// Configures the account service.
 pub fn account_config(cfg: &mut web::ServiceConfig) {
-    cfg.service(post_account).service(get_account);
+    cfg.service(post_account)
+        .service(get_account)
+        .service(deposit)
+        .service(withdraw);
 }
 
 #[actix_web::post("/accounts")]
@@ -50,4 +52,50 @@ pub async fn get_account(
     }
     tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().json(account))
+}
+
+#[actix_web::post("/accounts/{id}/deposits")]
+pub async fn deposit(
+    db: web::Data<DbPool>,
+    id: web::Path<i32>,
+    deposit: web::Json<Deposit>,
+) -> AppResult<HttpResponse> {
+    let mut tx = db.begin().await.map_err(DbError::from)?;
+    let account_id = id.into_inner();
+    account_repository::deposit(&mut tx, account_id, deposit.amount()).await?;
+    tx.commit().await.map_err(DbError::from)?;
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[actix_web::post("/accounts/{id}/withdrawals")]
+pub async fn withdraw(
+    db: web::Data<DbPool>,
+    id: web::Path<i32>,
+    withdrawal: web::Json<Withdrawal>,
+) -> AppResult<HttpResponse> {
+    let mut tx = db.begin().await.map_err(DbError::from)?;
+
+    let account_id = id.into_inner();
+    let withdrawal = withdrawal.into_inner();
+
+    // Try to make withdrawal
+    tracing::debug!(
+        "Withdrawing {} from account {}",
+        withdrawal.amount(),
+        account_id
+    );
+    let account = account_repository::withdraw(&mut tx, account_id, withdrawal.amount()).await?;
+
+    // Check if balance became negative
+    if account.balance() < 0 {
+        return Err(ServiceError::ValidationError(format!(
+            "Too low balance, required {} but had {}",
+            withdrawal.amount(),
+            account.balance() + withdrawal.amount() as i64
+        ))
+        .into());
+    }
+
+    tx.commit().await.map_err(DbError::from)?;
+    Ok(HttpResponse::Ok().finish())
 }

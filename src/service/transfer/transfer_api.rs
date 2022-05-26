@@ -5,9 +5,7 @@ use crate::{
     security::jwt::{Claims, Role},
     service::{
         account::account_repository,
-        deposit::{deposit_model::Deposit, deposit_repository},
         transfer::{transfer_model::NewTransfer, transfer_repository},
-        withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
     },
     AppResult, DbPool,
 };
@@ -45,20 +43,10 @@ pub async fn create_transfer(
     }
 
     // Take from account
-    withdrawal_repository::withdraw(
-        &mut tx,
-        new_transfer.from_account,
-        Withdrawal::new(new_transfer.amount),
-    )
-    .await?;
+    account_repository::withdraw(&mut tx, new_transfer.from_account, new_transfer.amount).await?;
 
     // Give to account
-    deposit_repository::deposit(
-        &mut tx,
-        new_transfer.to_account,
-        Deposit::new(new_transfer.amount),
-    )
-    .await?;
+    account_repository::deposit(&mut tx, new_transfer.to_account, new_transfer.amount).await?;
 
     // Insert transfer
     let transfer = transfer_repository::insert_transfer(&mut tx, new_transfer.into_inner()).await?;

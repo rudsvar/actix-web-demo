@@ -1,8 +1,7 @@
 //! Utilities for interacting with the account table.
 
-use crate::{error::DbError, Tx};
-
 use super::account_model::{Account, NewAccount};
+use crate::{error::DbError, Tx};
 
 /// Insert a new account into the account table.
 pub async fn insert_account(e: &mut Tx, new_account: NewAccount) -> Result<Account, DbError> {
@@ -28,4 +27,38 @@ pub async fn fetch_account(e: &mut Tx, id: i32) -> Result<Account, DbError> {
         .fetch_one(e)
         .await
         .map_err(DbError::from)
+}
+
+/// Increase balance on an account.
+pub async fn deposit(tx: &mut Tx, account_id: i32, amount: u32) -> Result<(), DbError> {
+    sqlx::query!(
+        r#"
+        UPDATE accounts
+        SET balance = balance + $1
+        WHERE id = $2
+        "#,
+        amount as i64,
+        account_id,
+    )
+    .execute(tx)
+    .await?;
+    Ok(())
+}
+
+/// Decrease balance on an account.
+pub async fn withdraw(tx: &mut Tx, account_id: i32, withdrawal: u32) -> Result<Account, DbError> {
+    let account = sqlx::query_as!(
+        Account,
+        r#"
+            UPDATE accounts
+            SET balance = balance - $1
+            WHERE id = $2
+            RETURNING *
+        "#,
+        withdrawal as i64,
+        account_id,
+    )
+    .fetch_one(tx)
+    .await?;
+    Ok(account)
 }

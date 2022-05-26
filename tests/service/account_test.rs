@@ -1,10 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
-use actix_web_demo::service::{
-    account::account_model::{Account, NewAccount},
-    deposit::deposit_model::Deposit,
-    withdrawal::withdrawal_model::Withdrawal,
-};
+use actix_web_demo::service::account::account_model::{Account, Deposit, NewAccount, Withdrawal};
 
 #[actix_rt::test]
 async fn post_account_gives_201() {
@@ -86,6 +82,8 @@ async fn deposit_increases_balance() {
         .await
         .unwrap();
 
+    println!("Old acc {:?}", old_account);
+
     // Make a deposit
     let deposit_amount = 50;
     let deposit = Deposit::new(deposit_amount);
@@ -108,6 +106,8 @@ async fn deposit_increases_balance() {
         .json()
         .await
         .unwrap();
+
+    println!("New acc {:?}", old_account);
 
     assert_eq!(
         old_account.balance() + deposit_amount as i64,

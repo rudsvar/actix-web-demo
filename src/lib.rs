@@ -85,9 +85,7 @@ pub fn run_app(
                 web::scope("/api")
                     .wrap(auth)
                     .configure(service::account::account_api::account_config)
-                    .configure(service::user::user_config)
-                    .configure(service::deposit::deposit_api::deposit_config)
-                    .configure(service::withdrawal::withdrawal_api::withdrawal_config)
+                    .configure(service::user::user_api::user_config)
                     .configure(service::transfer::transfer_api::transfer_config)
                     // Secure endpoints
                     .route("/user", web::get().to(user))
