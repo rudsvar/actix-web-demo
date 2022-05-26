@@ -8,12 +8,16 @@ use crate::{
         deposit::{deposit_model::Deposit, deposit_repository},
         transfer::{transfer_model::NewTransfer, transfer_repository},
         withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
-        AppResult,
     },
-    DbPool,
+    AppResult, DbPool,
 };
 use actix_web::{web, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
+
+/// Configure the transfer service.
+pub fn transfer_config(cfg: &mut web::ServiceConfig) {
+    cfg.service(create_transfer);
+}
 
 #[actix_web::post("/transfers")]
 #[has_roles(

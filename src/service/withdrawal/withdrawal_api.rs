@@ -2,13 +2,15 @@
 
 use crate::{
     error::{DbError, ServiceError},
-    service::{
-        withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
-        AppResult,
-    },
-    DbPool,
+    service::withdrawal::{withdrawal_model::Withdrawal, withdrawal_repository},
+    AppResult, DbPool,
 };
 use actix_web::{web, HttpResponse};
+
+/// Configure the withdrawal service.
+pub fn withdrawal_config(cfg: &mut web::ServiceConfig) {
+    cfg.service(withdraw);
+}
 
 #[actix_web::post("/accounts/{id}/withdrawals")]
 pub async fn withdraw(

@@ -1,10 +1,9 @@
 //! A service that can receive user information and validate it.
 
-use super::AppResult;
 use crate::{
     error::AppError,
     security::jwt::{decode_jwt, encode_jwt},
-    DbPool,
+    AppResult, DbPool,
 };
 use actix_web::{web::Data, HttpResponse};
 use actix_web_httpauth::extractors::{basic::BasicAuth, bearer::BearerAuth};

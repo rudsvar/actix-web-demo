@@ -14,6 +14,7 @@ use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
+use error::AppError;
 use graphql::schema::create_schema;
 use rustls::{Certificate, PrivateKey, ServerConfig};
 use rustls_pemfile::{certs, pkcs8_private_keys};
@@ -36,6 +37,9 @@ pub mod middleware;
 pub mod security;
 pub mod service;
 pub mod validation;
+
+/// A common response type for services.
+pub type AppResult<T> = Result<T, AppError>;
 
 /// The database connection pool type used in the application.
 pub type DbPool = PgPool;
@@ -82,9 +86,9 @@ pub fn run_app(
                     .wrap(auth)
                     .configure(service::account::account_api::account_config)
                     .configure(service::user::user_config)
-                    .configure(service::deposit::deposit_config)
-                    .configure(service::withdrawal::withdrawal_config)
-                    .configure(service::transfer::transfer_config)
+                    .configure(service::deposit::deposit_api::deposit_config)
+                    .configure(service::withdrawal::withdrawal_api::withdrawal_config)
+                    .configure(service::transfer::transfer_api::transfer_config)
                     // Secure endpoints
                     .route("/user", web::get().to(user))
                     .route("/admin", web::get().to(admin)),

@@ -4,7 +4,8 @@ use crate::error::AppError;
 use crate::security::jwt::{Claims, Role};
 use crate::service::account::account_model::NewAccount;
 use crate::service::account::account_repository;
-use crate::{error::DbError, service::AppResult, DbPool};
+use crate::AppResult;
+use crate::{error::DbError, DbPool};
 use actix_web::{web, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 
