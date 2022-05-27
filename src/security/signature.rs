@@ -1,6 +1,6 @@
 //! HTTP signature creation and validation.
 //!
-//! See https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.4.
+//! See <https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.4> for the specification.
 
 use itertools::Itertools;
 use openssl::{
@@ -171,7 +171,7 @@ pub fn sign(message: &[u8], private_key: PKey<Private>) -> Result<Vec<u8>, SignE
     Ok(signature)
 }
 
-/// Failed to sign the message.
+/// Failed to verify the message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 #[error("failed to verify message")]
 pub struct VerifyError;
@@ -190,6 +190,28 @@ pub fn verify(
 }
 
 /// A map of header key-value pairs that preserves insertion order.
+///
+/// # Examples
+/// ```
+/// let mut headers = Headers::new();
+/// headers.add("(request-target)", "get /foo");
+/// headers.add("host", "example.org");
+/// headers.add("date", "Tue, 07 Jun 2014 20:51:35 GMT");
+/// headers.add("cache-control", "max-age=60");
+/// headers.add("cache-control", "must-revalidate");
+/// headers.add("x-example", "Example header with some whitespace.");
+///
+/// let signature_string = headers.signature_string();
+///
+/// assert_eq!(
+///     r#"(request-target): get /foo
+/// host: example.org
+/// date: Tue, 07 Jun 2014 20:51:35 GMT
+/// cache-control: max-age=60, must-revalidate
+/// x-example: Example header with some whitespace."#,
+///     signature_string
+/// );
+/// ```
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Headers {
     names: Vec<String>,
@@ -228,27 +250,6 @@ impl Headers {
 #[cfg(test)]
 mod tests {
     use super::{load_private_key, load_public_key, sign, verify, SignatureHeader};
-    use crate::security::signature::Headers;
-
-    #[test]
-    fn signature_string_works() {
-        let mut headers = Headers::new();
-        headers.add("(request-target)", "get /foo");
-        headers.add("host", "example.org");
-        headers.add("date", "Tue, 07 Jun 2014 20:51:35 GMT");
-        headers.add("cache-control", "max-age=60");
-        headers.add("cache-control", "must-revalidate");
-        headers.add("x-example", "Example header with some whitespace.");
-        let signature_string = headers.signature_string();
-        assert_eq!(
-            r#"(request-target): get /foo
-host: example.org
-date: Tue, 07 Jun 2014 20:51:35 GMT
-cache-control: max-age=60, must-revalidate
-x-example: Example header with some whitespace."#,
-            signature_string
-        );
-    }
 
     #[test]
     fn verify_signature_works() {
