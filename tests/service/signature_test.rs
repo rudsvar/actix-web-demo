@@ -8,7 +8,6 @@ async fn signed_request_works() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = Headers::new();
@@ -22,7 +21,7 @@ async fn signed_request_works() {
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign.iter().map(|s| s.to_string()).collect(),
+        headers.headers().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -42,7 +41,6 @@ async fn edited_signed_request_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = Headers::new();
@@ -56,7 +54,7 @@ async fn edited_signed_request_fails() {
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign.iter().map(|s| s.to_string()).collect(),
+        headers.headers().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -76,7 +74,6 @@ async fn signed_with_wrong_key_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
     let mut headers = Headers::new();
@@ -90,7 +87,7 @@ async fn signed_with_wrong_key_fails() {
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign.iter().map(|s| s.to_string()).collect(),
+        headers.headers().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -110,12 +107,10 @@ async fn invalid_signature_string_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
 
-    let headers_to_sign = vec!["(request-target)"];
-
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign.iter().map(|s| s.to_string()).collect(),
+        vec!["(request-target)".to_string()],
         "invalid_signature_string".to_string(),
     );
 

@@ -235,6 +235,11 @@ impl<'a, 'b> Headers<'a, 'b> {
         entry.push(value);
     }
 
+    /// An iterator over all the headers in order of insertion.
+    pub fn headers(&self) -> impl Iterator<Item = &str> {
+        self.names.iter().copied()
+    }
+
     /// Compute the signature string used to create a signature.
     pub fn signature_string(&self) -> String {
         let mut stuff = Vec::new();
