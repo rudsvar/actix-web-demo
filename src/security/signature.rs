@@ -193,6 +193,8 @@ pub fn verify(
 ///
 /// # Examples
 /// ```
+/// # use actix_web_demo::security::signature::Headers;
+///
 /// let mut headers = Headers::new();
 /// headers.add("(request-target)", "get /foo");
 /// headers.add("host", "example.org");
@@ -213,23 +215,21 @@ pub fn verify(
 /// );
 /// ```
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Headers {
-    names: Vec<String>,
-    values: HashMap<String, Vec<String>>,
+pub struct Headers<'a, 'b> {
+    names: Vec<&'a str>,
+    values: HashMap<&'a str, Vec<&'b str>>,
 }
 
-impl Headers {
+impl<'a, 'b> Headers<'a, 'b> {
     /// Creates an empty set of headers.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Adds a new header value. If the key already exists, the new value will be appended.
-    pub fn add(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        let key = key.into();
-        let value = value.into();
+    pub fn add(&mut self, key: &'a str, value: &'b str) {
         if !self.values.contains_key(&key) {
-            self.names.push(key.clone());
+            self.names.push(key);
         }
         let entry = self.values.entry(key).or_default();
         entry.push(value);

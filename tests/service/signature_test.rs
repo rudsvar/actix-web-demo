@@ -13,7 +13,7 @@ async fn signed_request_works() {
 
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /signature");
-    headers.add("date", date.clone());
+    headers.add("date", &date);
     let signature_string = headers.signature_string();
 
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
@@ -47,7 +47,7 @@ async fn edited_signed_request_fails() {
 
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /not-signature");
-    headers.add("date", date.clone());
+    headers.add("date", &date);
     let signature_string = headers.signature_string();
 
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
@@ -81,7 +81,7 @@ async fn signed_with_wrong_key_fails() {
 
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /signature");
-    headers.add("date", date.clone());
+    headers.add("date", &date);
     let signature_string = headers.signature_string();
 
     let private_key = signature::load_private_key("./tests/wrong-test-signing-key.pem").unwrap();

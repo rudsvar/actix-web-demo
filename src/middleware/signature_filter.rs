@@ -44,18 +44,17 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     // Collect headers to sign
     let signed_headers = signature_header.headers();
     let mut headers_to_sign = Headers::new();
-    for h in signed_headers.iter() {
-        match h.as_str() {
+    let request_target = format!("{} {}", req.method().as_str().to_lowercase(), req.uri());
+    for header in signed_headers.iter() {
+        match header.as_str() {
             // Compute request-target
             "(request-target)" => {
-                let request_target =
-                    format!("{} {}", req.method().as_str().to_lowercase(), req.uri());
-                headers_to_sign.add(h.to_string(), request_target);
+                headers_to_sign.add(header, &request_target);
             }
             // Append header
-            h => {
-                for v in header_map.get_all(h) {
-                    headers_to_sign.add(h.to_string(), v.to_str().unwrap().to_string());
+            header => {
+                for value in header_map.get_all(header) {
+                    headers_to_sign.add(header, value.to_str().unwrap());
                 }
             }
         }
