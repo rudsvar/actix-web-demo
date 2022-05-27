@@ -1,8 +1,7 @@
-use actix_http::{header::HttpDate, StatusCode};
-use actix_web_demo::security::signature::{self, SignatureHeader};
-use std::{collections::HashMap, time::SystemTime};
-
 use crate::common::spawn_test_app;
+use actix_http::{header::HttpDate, StatusCode};
+use actix_web_demo::security::signature::{self, Headers, SignatureHeader};
+use std::time::SystemTime;
 
 #[actix_rt::test]
 async fn signed_request_works() {
@@ -12,21 +11,18 @@ async fn signed_request_works() {
     let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
-    let mut headers = HashMap::new();
-    headers.insert("(request-target)", vec!["get /signature"]);
-    headers.insert("date", vec![&date]);
-    let signature_string = signature::signature_string(&headers_to_sign, &headers);
+    let mut headers = Headers::new();
+    headers.add("(request-target)", "get /signature");
+    headers.add("date", date.clone());
+    let signature_string = headers.signature_string();
+
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign
-            .iter()
-            .cloned()
-            .map(|s| s.to_string())
-            .collect(),
+        headers_to_sign.iter().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -49,21 +45,18 @@ async fn edited_signed_request_fails() {
     let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
-    let mut headers = HashMap::new();
-    headers.insert("(request-target)", vec!["get /not-signature"]);
-    headers.insert("date", vec![&date]);
-    let signature_string = signature::signature_string(&headers_to_sign, &headers);
+    let mut headers = Headers::new();
+    headers.add("(request-target)", "get /not-signature");
+    headers.add("date", date.clone());
+    let signature_string = headers.signature_string();
+
     let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign
-            .iter()
-            .cloned()
-            .map(|s| s.to_string())
-            .collect(),
+        headers_to_sign.iter().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -86,21 +79,18 @@ async fn signed_with_wrong_key_fails() {
     let headers_to_sign = vec!["(request-target)", "date"];
     let date = HttpDate::from(SystemTime::now()).to_string();
 
-    let mut headers = HashMap::new();
-    headers.insert("(request-target)", vec!["get /signature"]);
-    headers.insert("date", vec![&date]);
-    let signature_string = signature::signature_string(&headers_to_sign, &headers);
+    let mut headers = Headers::new();
+    headers.add("(request-target)", "get /signature");
+    headers.add("date", date.clone());
+    let signature_string = headers.signature_string();
+
     let private_key = signature::load_private_key("./tests/wrong-test-signing-key.pem").unwrap();
     let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
     let base64_signature = base64::encode(&signature);
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign
-            .iter()
-            .cloned()
-            .map(|s| s.to_string())
-            .collect(),
+        headers_to_sign.iter().map(|s| s.to_string()).collect(),
         base64_signature,
     );
 
@@ -125,11 +115,7 @@ async fn invalid_signature_string_fails() {
     let signature_header = SignatureHeader::new(
         "test".to_string(),
         "ecdsa-sha256".to_string(),
-        headers_to_sign
-            .iter()
-            .cloned()
-            .map(|s| s.to_string())
-            .collect(),
+        headers_to_sign.iter().map(|s| s.to_string()).collect(),
         "invalid_signature_string".to_string(),
     );
 

@@ -11,7 +11,7 @@ use openssl::{
 };
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read, str::FromStr};
 
-/// Signature keyId="foo", algorithm="rsa-sha256", headers="x-request-id tpp-redirect-uri digest foo psu-id", signature=
+/// Represents a signature header value.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignatureHeader {
     key_id: String,
@@ -189,49 +189,57 @@ pub fn verify(
     Ok(verified)
 }
 
-/// Compute the signature string used to create a signature.
-#[allow(unstable_name_collisions)]
-pub fn signature_string(header_order: &[&str], headers: &HashMap<&str, Vec<&str>>) -> String {
-    header_order
-        .iter()
-        .filter_map(|k| headers.get_key_value(k))
-        .map(|(k, vs)| {
-            let vs_str: String = vs
-                .iter()
-                .map(|s| s.trim().to_string())
-                .intersperse(", ".to_string())
-                .collect();
-            format!("{}: {}", k.to_lowercase(), vs_str)
-        })
-        .intersperse("\n".to_string())
-        .collect()
+/// A map of header key-value pairs that preserves insertion order.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Headers {
+    names: Vec<String>,
+    values: HashMap<String, Vec<String>>,
+}
+
+impl Headers {
+    /// Creates an empty set of headers.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a new header value. If the key already exists, the new value will be appended.
+    pub fn add(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        let key = key.into();
+        let value = value.into();
+        if !self.values.contains_key(&key) {
+            self.names.push(key.clone());
+        }
+        let entry = self.values.entry(key).or_default();
+        entry.push(value);
+    }
+
+    /// Compute the signature string used to create a signature.
+    pub fn signature_string(&self) -> String {
+        let mut stuff = Vec::new();
+        for h in &self.names {
+            let vs = self.values.get(h).unwrap();
+            let vs_str: String = vs.iter().join(", ");
+            stuff.push(format!("{}: {}", h, vs_str));
+        }
+        stuff.join("\n")
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        load_private_key, load_public_key, sign, signature_string, verify, SignatureHeader,
-    };
-    use std::collections::HashMap;
+    use super::{load_private_key, load_public_key, sign, verify, SignatureHeader};
+    use crate::security::signature::Headers;
 
     #[test]
     fn signature_string_works() {
-        let mut headers = HashMap::new();
-        headers.insert("(request-target)", vec!["get /foo"]);
-        headers.insert("host", vec!["example.org"]);
-        headers.insert("date", vec!["Tue, 07 Jun 2014 20:51:35 GMT"]);
-        headers.insert("x-example", vec!["Example header with some whitespace."]);
-        headers.insert("cache-control", vec!["max-age=60", "must-revalidate"]);
-        let signature_string = signature_string(
-            &[
-                "(request-target)",
-                "host",
-                "date",
-                "cache-control",
-                "x-example",
-            ],
-            &headers,
-        );
+        let mut headers = Headers::new();
+        headers.add("(request-target)", "get /foo");
+        headers.add("host", "example.org");
+        headers.add("date", "Tue, 07 Jun 2014 20:51:35 GMT");
+        headers.add("cache-control", "max-age=60");
+        headers.add("cache-control", "must-revalidate");
+        headers.add("x-example", "Example header with some whitespace.");
+        let signature_string = headers.signature_string();
         assert_eq!(
             r#"(request-target): get /foo
 host: example.org

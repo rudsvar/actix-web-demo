@@ -1,13 +1,13 @@
 //! Middleware for appending headers to responses.
 
-use crate::security::signature::{self, SignatureHeader};
+use crate::security::signature::{self, Headers, SignatureHeader};
 use actix_http::body::BoxBody;
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     HttpResponse,
 };
 use futures::future::{LocalBoxFuture, Ready};
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 /// A service for appending headers to responses.
 #[derive(Debug)]
@@ -18,6 +18,7 @@ pub struct SignatureFilterService<S> {
 fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     let header_map = req.headers();
 
+    // Extract signature information
     tracing::info!("Getting authorization header");
     let signature_header = header_map
         .get("Authorization")
@@ -29,20 +30,41 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
         .map_err(|_| HttpResponse::BadRequest())?;
     tracing::info!("Got signature header {}", signature_header);
 
-    // Collect headers to sign
-    let mut headers_to_sign: HashMap<&str, Vec<&str>> = HashMap::new();
+    // Check for missing signature headers
     let mandatory_headers = vec!["(request-target)", "date"];
-    for &h in &mandatory_headers {
-        let values: Vec<&str> = header_map.get_all(h).map(|h| h.to_str().unwrap()).collect();
-        headers_to_sign.insert(h, values);
+    let missing_headers: Vec<&str> = mandatory_headers
+        .into_iter()
+        .filter(|h| signature_header.headers().contains(&h.to_string()))
+        .collect();
+    if missing_headers.is_empty() {
+        tracing::warn!("Missing mandatory signature headers {:?}", missing_headers);
+        return Err(HttpResponse::Unauthorized().finish());
     }
-    let request_target = format!("{} {}", req.method().to_string().to_lowercase(), req.uri());
-    headers_to_sign.insert("(request-target)", vec![request_target.as_str()]);
+
+    // Collect headers to sign
+    let signed_headers = signature_header.headers();
+    let mut headers_to_sign = Headers::new();
+    for h in signed_headers.iter() {
+        match h.as_str() {
+            // Compute request-target
+            "(request-target)" => {
+                let request_target =
+                    format!("{} {}", req.method().as_str().to_lowercase(), req.uri());
+                headers_to_sign.add(h.to_string(), request_target);
+            }
+            // Append header
+            h => {
+                for v in header_map.get_all(h) {
+                    headers_to_sign.add(h.to_string(), v.to_str().unwrap().to_string());
+                }
+            }
+        }
+    }
 
     tracing::info!("Headers to sign: {:?}", headers_to_sign);
 
     // Compute the expected signature string
-    let signature_string = signature::signature_string(&mandatory_headers, &headers_to_sign);
+    let signature_string = headers_to_sign.signature_string();
     tracing::info!("Verifying signature string {}", signature_string);
 
     // Get the provided signature
