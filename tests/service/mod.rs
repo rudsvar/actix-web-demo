@@ -2,6 +2,7 @@ use crate::common::TestApp;
 
 mod account_test;
 mod auth_test;
+mod digest_test;
 mod security_test;
 mod signature_test;
 pub mod transfer_test;
