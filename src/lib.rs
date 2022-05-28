@@ -7,7 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
-use crate::middleware::SignatureFilter;
+use crate::middleware::{DigestFilter, SignatureFilter};
 use crate::security::jwt::Role;
 use actix_cors::Cors;
 use actix_web::HttpResponse;
@@ -94,6 +94,7 @@ pub fn run_app(
             .service(
                 web::scope("/signature")
                     .wrap(SignatureFilter)
+                    .wrap(DigestFilter)
                     .route("", web::get().to(HttpResponse::Ok)),
             )
     })
