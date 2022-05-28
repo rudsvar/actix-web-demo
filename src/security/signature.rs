@@ -7,22 +7,63 @@ use openssl::{
     ec::EcKey,
     hash::MessageDigest,
     pkey::{PKey, Private, Public},
+    rsa::Rsa,
     sign::{Signer, Verifier},
 };
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read, str::FromStr};
+
+/// Supported encryption algorithms.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Algorithm {
+    /// Ecdsa with sha256
+    EcdsaSha256,
+    /// Rsa with sha256
+    RsaSha256,
+}
+
+/// The algorithm is not (yet) supported.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UnsupportedAlgorithmError;
+
+impl FromStr for Algorithm {
+    type Err = UnsupportedAlgorithmError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ecdsa-sha256" => Ok(Algorithm::EcdsaSha256),
+            "rsa-sha256" => Ok(Algorithm::RsaSha256),
+            _ => Err(UnsupportedAlgorithmError),
+        }
+    }
+}
+
+impl Display for Algorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Algorithm::EcdsaSha256 => "ecdsa-sha256",
+            Algorithm::RsaSha256 => "rsa-sha256",
+        };
+        write!(f, "{}", s)
+    }
+}
 
 /// Represents a signature header value.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SignatureHeader {
     key_id: String,
-    algorithm: String,
+    algorithm: Algorithm,
     headers: Vec<String>,
     signature: String,
 }
 
 impl SignatureHeader {
     /// Creates a new signature header value.
-    pub fn new(key_id: String, algorithm: String, headers: Vec<String>, signature: String) -> Self {
+    pub fn new(
+        key_id: String,
+        algorithm: Algorithm,
+        headers: Vec<String>,
+        signature: String,
+    ) -> Self {
         Self {
             key_id,
             algorithm,
@@ -39,8 +80,8 @@ impl SignatureHeader {
 
     /// Get a reference to the signature's algorithm.
     #[must_use]
-    pub fn algorithm(&self) -> &str {
-        self.algorithm.as_ref()
+    pub fn algorithm(&self) -> &Algorithm {
+        &self.algorithm
     }
 
     /// Get a reference to the signature's headers.
@@ -95,15 +136,15 @@ impl FromStr for SignatureHeader {
             map.insert(key, value);
         }
 
+        let algorithm = map.get("algorithm").ok_or(SignatureHeaderParseError)?;
+        let algorithm = Algorithm::from_str(algorithm).map_err(|_| SignatureHeaderParseError)?;
+
         let signature = SignatureHeader {
             key_id: map
                 .get("keyId")
                 .ok_or(SignatureHeaderParseError)?
                 .to_string(),
-            algorithm: map
-                .get("algorithm")
-                .ok_or(SignatureHeaderParseError)?
-                .to_string(),
+            algorithm,
             headers: map
                 .get("headers")
                 .ok_or(SignatureHeaderParseError)?
@@ -143,7 +184,7 @@ fn load_key(path: &str) -> Result<Vec<u8>, KeyLoadError> {
 }
 
 /// Loads the specified private key.
-pub fn load_private_key(path: &str) -> Result<PKey<Private>, KeyLoadError> {
+fn load_ec_private_key(path: &str) -> Result<PKey<Private>, KeyLoadError> {
     let buf = load_key(path)?;
     let ec_key = EcKey::private_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
     let key = PKey::from_ec_key(ec_key).map_err(|_| KeyLoadError::KeyFormatError)?;
@@ -151,11 +192,55 @@ pub fn load_private_key(path: &str) -> Result<PKey<Private>, KeyLoadError> {
 }
 
 /// Loads the specified public key.
-pub fn load_public_key(path: &str) -> Result<PKey<Public>, KeyLoadError> {
+fn load_ec_public_key(path: &str) -> Result<PKey<Public>, KeyLoadError> {
     let buf = load_key(path)?;
     let ec_key = EcKey::public_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
     let key = PKey::from_ec_key(ec_key).map_err(|_| KeyLoadError::KeyFormatError)?;
     Ok(key)
+}
+
+/// Loads a private key of the specified type.
+pub fn load_private_key(path: &str, algorithm: &Algorithm) -> Result<PKey<Private>, KeyLoadError> {
+    let buf = load_key(path)?;
+    match algorithm {
+        Algorithm::EcdsaSha256 => load_ec_private_key(path),
+        Algorithm::RsaSha256 => {
+            let key = Rsa::private_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
+            let key = PKey::from_rsa(key).map_err(|_| KeyLoadError::KeyFormatError)?;
+            Ok(key)
+        }
+    }
+}
+
+/// Loads a public key of the specified type.
+pub fn load_public_key(path: &str, algorithm: &Algorithm) -> Result<PKey<Public>, KeyLoadError> {
+    let buf = load_key(path)?;
+    match algorithm {
+        Algorithm::EcdsaSha256 => load_ec_public_key(path),
+        Algorithm::RsaSha256 => {
+            let key = Rsa::public_key_from_pem(&buf).map_err(|_| KeyLoadError::KeyFormatError)?;
+            let key = PKey::from_rsa(key).map_err(|_| KeyLoadError::KeyFormatError)?;
+            Ok(key)
+        }
+    }
+}
+
+/// Generate a signature based on the inputs.
+pub fn signature_header(
+    key_id: &str,
+    algorithm: Algorithm,
+    headers: &Headers<'_, '_>,
+    key: PKey<Private>,
+) -> Result<SignatureHeader, SignError> {
+    let header_string = headers.signature_string();
+    let signature = sign(header_string.as_bytes(), key).map_err(|_| SignError)?;
+    let signature = base64::encode(signature);
+    Ok(SignatureHeader {
+        key_id: key_id.to_string(),
+        algorithm,
+        headers: headers.headers().map(|s| s.to_string()).collect(),
+        signature,
+    })
 }
 
 /// Failed to sign the message.
@@ -254,24 +339,26 @@ impl<'a, 'b> Headers<'a, 'b> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_private_key, load_public_key, sign, verify, SignatureHeader};
+    use super::{
+        load_ec_private_key, load_ec_public_key, sign, verify, Algorithm, SignatureHeader,
+    };
 
     #[test]
     fn verify_signature_works() {
         let data = b"hello there";
-        let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
+        let private_key = load_ec_private_key("./tests/test-signing-key.pem").unwrap();
         let signature = sign(data, private_key).unwrap();
-        let public_key = load_public_key("./key_repository/test.pem").unwrap();
+        let public_key = load_ec_public_key("./key_repository/test.pem").unwrap();
         assert_eq!(Ok(true), verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
-        let private_key = load_private_key("./tests/test-signing-key.pem").unwrap();
+        let private_key = load_ec_private_key("./tests/test-signing-key.pem").unwrap();
         let signature = sign(data, private_key).unwrap();
         let modified_data = b"hello bar";
-        let public_key = load_public_key("./key_repository/test.pem").unwrap();
+        let public_key = load_ec_public_key("./key_repository/test.pem").unwrap();
         assert_eq!(Ok(false), verify(modified_data, &signature, public_key))
     }
 
@@ -279,7 +366,7 @@ mod tests {
     fn signature_display_impl() {
         let signature = SignatureHeader::new(
             "abc123".to_string(),
-            "ecdsa-sha256".to_string(),
+            Algorithm::EcdsaSha256,
             vec![
                 "(request-target)".to_string(),
                 "date".to_string(),
@@ -297,7 +384,7 @@ mod tests {
     fn signature_from_str() {
         let signature = SignatureHeader::new(
             "abc123".to_string(),
-            "ecdsa-sha256".to_string(),
+            Algorithm::EcdsaSha256,
             vec![
                 "(request-target)".to_string(),
                 "date".to_string(),

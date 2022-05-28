@@ -71,10 +71,10 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
         base64::decode(signature_header.signature()).map_err(|_| HttpResponse::BadRequest())?;
 
     // Load public key associated with the keyId
-    let public_key = signature::load_public_key(&format!(
-        "./key_repository/{}.pem",
-        signature_header.key_id()
-    ))
+    let public_key = signature::load_public_key(
+        &format!("./key_repository/{}.pem", signature_header.key_id()),
+        signature_header.algorithm(),
+    )
     .map_err(|_| {
         tracing::warn!("Public key does not exist");
         HttpResponse::Unauthorized()

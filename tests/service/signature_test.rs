@@ -1,6 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::{header::HttpDate, StatusCode};
-use actix_web_demo::security::signature::{self, Headers, SignatureHeader};
+use actix_web_demo::security::signature::{self, Algorithm, Headers, SignatureHeader};
 use std::time::SystemTime;
 
 #[actix_rt::test]
@@ -13,17 +13,12 @@ async fn signed_request_works() {
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /signature");
     headers.add("date", &date);
-    let signature_string = headers.signature_string();
 
-    let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
-    let base64_signature = base64::encode(&signature);
-    let signature_header = SignatureHeader::new(
-        "test".to_string(),
-        "ecdsa-sha256".to_string(),
-        headers.headers().map(|s| s.to_string()).collect(),
-        base64_signature,
-    );
+    let private_key =
+        signature::load_private_key("./tests/test-signing-key.pem", &Algorithm::EcdsaSha256)
+            .unwrap();
+    let signature_header =
+        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -46,17 +41,12 @@ async fn edited_signed_request_fails() {
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /not-signature");
     headers.add("date", &date);
-    let signature_string = headers.signature_string();
 
-    let private_key = signature::load_private_key("./tests/test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
-    let base64_signature = base64::encode(&signature);
-    let signature_header = SignatureHeader::new(
-        "test".to_string(),
-        "ecdsa-sha256".to_string(),
-        headers.headers().map(|s| s.to_string()).collect(),
-        base64_signature,
-    );
+    let private_key =
+        signature::load_private_key("./tests/test-signing-key.pem", &Algorithm::EcdsaSha256)
+            .unwrap();
+    let signature_header =
+        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -79,17 +69,14 @@ async fn signed_with_wrong_key_fails() {
     let mut headers = Headers::new();
     headers.add("(request-target)", "get /signature");
     headers.add("date", &date);
-    let signature_string = headers.signature_string();
 
-    let private_key = signature::load_private_key("./tests/wrong-test-signing-key.pem").unwrap();
-    let signature = signature::sign(signature_string.as_bytes(), private_key).unwrap();
-    let base64_signature = base64::encode(&signature);
-    let signature_header = SignatureHeader::new(
-        "test".to_string(),
-        "ecdsa-sha256".to_string(),
-        headers.headers().map(|s| s.to_string()).collect(),
-        base64_signature,
-    );
+    let private_key = signature::load_private_key(
+        "./tests/wrong-test-signing-key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
+    let signature_header =
+        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -109,9 +96,9 @@ async fn invalid_signature_string_fails() {
 
     let signature_header = SignatureHeader::new(
         "test".to_string(),
-        "ecdsa-sha256".to_string(),
-        vec!["(request-target)".to_string()],
-        "invalid_signature_string".to_string(),
+        Algorithm::EcdsaSha256,
+        vec!["(request-target)".to_string(), "date".to_string()],
+        "not-a-signature".to_string(),
     );
 
     let response = client
