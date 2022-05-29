@@ -56,22 +56,32 @@ async fn get_digest_header(req: &ServiceRequest) -> Result<&str, DigestError> {
 }
 
 /// Validates
-async fn validate_digest(req: &ServiceRequest, body: &[u8]) -> Result<(), DigestError> {
+async fn validate_digest(req: &mut ServiceRequest) -> Result<(), DigestError> {
     tracing::info!("Validating digest");
 
-    // Get digest header
-    let digest_header = get_digest_header(req).await?;
+    // Get request body
+    let body = get_request_body(req).await;
 
-    tracing::info!("Got digest header {:?}", digest_header);
+    if !body.is_empty() {
+        // Get digest header
+        let digest_header = get_digest_header(req).await?;
 
-    // Compute digest and compare to header
-    let digest_body = openssl::hash::hash(MessageDigest::sha256(), body)
-        .map_err(|_| DigestError::InvalidHeader)?;
-    let digest_body = openssl::base64::encode_block(&digest_body);
-    if digest_header != digest_body {
-        tracing::info!("Expected digest {:?}", digest_body);
-        return Err(DigestError::DigestMismatch);
+        tracing::info!("Got digest header {:?}", digest_header);
+
+        // Compute digest and compare to header
+        let digest_body = openssl::hash::hash(MessageDigest::sha256(), &body)
+            .map_err(|_| DigestError::InvalidHeader)?;
+        let digest_body = openssl::base64::encode_block(&digest_body);
+        if digest_header != digest_body {
+            tracing::info!("Expected digest {:?}", digest_body);
+            return Err(DigestError::DigestMismatch);
+        }
     }
+
+    // Reset payload
+    let (_, mut payload) = Payload::create(true);
+    payload.unread_data(body.into());
+    req.set_payload(payload.into());
 
     Ok(())
 }
@@ -92,27 +102,13 @@ where
         let svc = self.service.clone();
 
         Box::pin(async move {
-            // Get request body
-            let body = get_request_body(&mut req).await;
-
-            if !body.is_empty() {
-                // Validate digest
-                let result = validate_digest(&req, &body).await;
-                if result.is_err() {
-                    return Ok(req
-                        .into_response(HttpResponse::Unauthorized())
-                        .map_into_boxed_body());
-                }
+            if validate_digest(&mut req).await.is_err() {
+                return Ok(req
+                    .into_response(HttpResponse::Unauthorized())
+                    .map_into_boxed_body());
             }
 
-            // Reset payload
-            let (_, mut payload) = Payload::create(true);
-            payload.unread_data(body.into());
-            req.set_payload(payload.into());
-
-            let res = svc.call(req).await?;
-
-            Ok(res)
+            svc.call(req).await
         })
     }
 }
