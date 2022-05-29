@@ -16,16 +16,14 @@ use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use error::AppError;
 use graphql::schema::create_schema;
-use rustls::{Certificate, PrivateKey, ServerConfig};
-use rustls_pemfile::{certs, pkcs8_private_keys};
+use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use service::{
     client_context::client_context,
     health_check::health_check,
     token::{request_token, verify_token},
 };
 use sqlx::{PgPool, Postgres, Transaction};
-use std::fs::File;
-use std::io::{self, BufReader};
+use std::io::{self};
 use std::net::TcpListener;
 use std::sync::Arc;
 use tracing_actix_web::TracingLogger;
@@ -58,7 +56,7 @@ pub fn run_app(
         http_listener.local_addr().unwrap(),
         https_listener.local_addr().unwrap()
     );
-    let config = load_rustls_config();
+    let ssl_builder = ssl_builder();
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
@@ -99,8 +97,7 @@ pub fn run_app(
             )
     })
     .listen(http_listener)?
-    .listen_rustls(https_listener, config)?
-    // .bind_rustls("127.0.0.1:8443", config)?
+    .listen_openssl(https_listener, ssl_builder)?
     .run();
     Ok(server)
 }
@@ -115,38 +112,13 @@ async fn admin() -> HttpResponse {
     HttpResponse::Ok().body("Hello admin!".to_string())
 }
 
-fn load_rustls_config() -> rustls::ServerConfig {
-    // init server config builder with safe defaults
-    let rustls_config = ServerConfig::builder()
-        .with_safe_defaults()
-        .with_no_client_auth();
-
-    let app_config =
-        crate::configuration::load_configuration().expect("could not load configuration");
-
-    // load TLS key/cert files
-    let cert_file = &mut BufReader::new(File::open(app_config.security.certificate).unwrap());
-    let key_file = &mut BufReader::new(File::open(app_config.security.private_key).unwrap());
-
-    // convert files to key/cert objects
-    let cert_chain = certs(cert_file)
-        .unwrap()
-        .into_iter()
-        .map(Certificate)
-        .collect();
-    let mut keys: Vec<PrivateKey> = pkcs8_private_keys(key_file)
-        .unwrap()
-        .into_iter()
-        .map(PrivateKey)
-        .collect();
-
-    // exit if no keys could be parsed
-    if keys.is_empty() {
-        eprintln!("Could not locate PKCS 8 private keys.");
-        std::process::exit(1);
-    }
-
-    rustls_config
-        .with_single_cert(cert_chain, keys.remove(0))
-        .unwrap()
+fn ssl_builder() -> SslAcceptorBuilder {
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder
+        .set_private_key_file("test-key.pem", SslFiletype::PEM)
+        .expect("failed to open/read test-key.pem");
+    builder
+        .set_certificate_chain_file("test-cert.pem")
+        .expect("failed to open/read test-cert.pem");
+    builder
 }
