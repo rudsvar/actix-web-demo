@@ -1,12 +1,16 @@
 //! Middleware for appending headers to responses.
 
 use crate::security::signature::{self, Headers, SignatureHeader};
-use actix_http::body::BoxBody;
+use actix_http::{body::BoxBody, h1::Payload, HttpMessage};
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    web::BytesMut,
     HttpResponse,
 };
-use futures::future::{LocalBoxFuture, Ready};
+use futures::{
+    future::{LocalBoxFuture, Ready},
+    StreamExt,
+};
 use std::rc::Rc;
 
 /// A service for appending headers to responses.
@@ -15,7 +19,27 @@ pub struct SignatureFilterService<S> {
     service: Rc<S>,
 }
 
-fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
+/// Extracts the request body.
+async fn has_body(req: &mut ServiceRequest) -> bool {
+    let mut body = BytesMut::new();
+    let mut stream = req.take_payload();
+
+    while let Some(chunk) = stream.next().await {
+        body.extend_from_slice(&chunk.unwrap());
+    }
+
+    let has_body = !body.is_empty();
+
+    // Reset payload
+    let (_, mut payload) = Payload::create(true);
+    payload.unread_data(body.into());
+    req.set_payload(payload.into());
+
+    has_body
+}
+
+async fn validate_signature(req: &mut ServiceRequest) -> Result<(), HttpResponse> {
+    let has_body = has_body(req).await;
     let header_map = req.headers();
 
     // Extract signature information
@@ -31,12 +55,16 @@ fn validate_signature(req: &ServiceRequest) -> Result<(), HttpResponse> {
     tracing::info!("Got signature header {}", signature_header);
 
     // Check for missing signature headers
-    let mandatory_headers = vec!["(request-target)", "date"];
+    let mut mandatory_headers = vec!["(request-target)", "date"];
+    if has_body {
+        tracing::info!("Request has body, adding digest to mandatory headers");
+        mandatory_headers.push("digest");
+    }
     let missing_headers: Vec<&str> = mandatory_headers
         .into_iter()
-        .filter(|h| signature_header.headers().contains(&h.to_string()))
+        .filter(|h| !signature_header.headers().contains(&h.to_string()))
         .collect();
-    if missing_headers.is_empty() {
+    if !missing_headers.is_empty() {
         tracing::warn!("Missing mandatory signature headers {:?}", missing_headers);
         return Err(HttpResponse::Unauthorized().finish());
     }
@@ -104,10 +132,10 @@ where
 
     actix_web::dev::forward_ready!(service);
 
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        let validation_result = validate_signature(&req);
+    fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let service = Rc::clone(&self.service);
         Box::pin(async move {
+            let validation_result = validate_signature(&mut req).await;
             match validation_result {
                 Ok(()) => {
                     let resp = service.call(req).await?;

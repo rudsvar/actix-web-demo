@@ -19,6 +19,63 @@ pub struct DigestFilterService<S> {
     service: Rc<S>,
 }
 
+/// Extracts the request body.
+async fn get_request_body(req: &mut ServiceRequest) -> BytesMut {
+    let mut body = BytesMut::new();
+    let mut stream = req.take_payload();
+
+    while let Some(chunk) = stream.next().await {
+        body.extend_from_slice(&chunk.unwrap());
+    }
+
+    body
+}
+
+/// An error during digest validation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DigestError {
+    /// The digest header is missing.
+    MissingHeader,
+    /// The header is not a valid digest header.
+    InvalidHeader,
+    /// The digest header does not match the digest of the body.
+    DigestMismatch,
+}
+
+/// Extracts the digest header.
+async fn get_digest_header(req: &ServiceRequest) -> Result<&str, DigestError> {
+    let headers = req.headers();
+    let digest_header = headers.get("digest").ok_or(DigestError::MissingHeader)?;
+    let digest_header = digest_header
+        .to_str()
+        .map_err(|_| DigestError::InvalidHeader)?
+        .split_once('=')
+        .ok_or(DigestError::InvalidHeader)?
+        .1;
+    Ok(digest_header)
+}
+
+/// Validates
+async fn validate_digest(req: &ServiceRequest, body: &[u8]) -> Result<(), DigestError> {
+    tracing::info!("Validating digest");
+
+    // Get digest header
+    let digest_header = get_digest_header(req).await?;
+
+    tracing::info!("Got digest header {:?}", digest_header);
+
+    // Compute digest and compare to header
+    let digest_body = openssl::hash::hash(MessageDigest::sha256(), body)
+        .map_err(|_| DigestError::InvalidHeader)?;
+    let digest_body = openssl::base64::encode_block(&digest_body);
+    if digest_header != digest_body {
+        tracing::info!("Expected digest {:?}", digest_body);
+        return Err(DigestError::DigestMismatch);
+    }
+
+    Ok(())
+}
+
 impl<S> Service<ServiceRequest> for DigestFilterService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>>,
@@ -36,40 +93,16 @@ where
 
         Box::pin(async move {
             // Get request body
-            let mut body = BytesMut::new();
-            let mut stream = req.take_payload();
-
-            while let Some(chunk) = stream.next().await {
-                body.extend_from_slice(&chunk.unwrap());
-            }
+            let body = get_request_body(&mut req).await;
 
             if !body.is_empty() {
-                tracing::info!("Validating digest");
-
-                // Get digest header
-                let headers = req.headers();
-                let digest_header = headers.get("digest").unwrap();
-                let digest_header = digest_header
-                    .to_str()
-                    .unwrap()
-                    .split_once('=')
-                    .unwrap()
-                    .1
-                    .to_string();
-                tracing::info!("Got digest header {:?}", digest_header);
-
-                // Compute digest and compare to header
-                let digest_body: &[u8] =
-                    &openssl::hash::hash(MessageDigest::sha256(), &body).unwrap();
-                let digest_body = openssl::base64::encode_block(digest_body);
-                if digest_header != digest_body {
-                    tracing::info!("Expected digest {:?}", digest_body);
+                // Validate digest
+                let result = validate_digest(&req, &body).await;
+                if result.is_err() {
                     return Ok(req
                         .into_response(HttpResponse::Unauthorized())
                         .map_into_boxed_body());
                 }
-            } else {
-                tracing::info!("Empty body, not validating digest");
             }
 
             // Reset payload
