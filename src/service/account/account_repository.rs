@@ -4,7 +4,11 @@ use super::account_model::{Account, NewAccount};
 use crate::{error::DbError, Tx};
 
 /// Insert a new account into the account table.
-pub async fn insert_account(e: &mut Tx, new_account: NewAccount) -> Result<Account, DbError> {
+pub async fn insert_account(
+    e: &mut Tx,
+    user_id: i32,
+    new_account: NewAccount,
+) -> Result<Account, DbError> {
     sqlx::query_as!(
         Account,
         r#"
@@ -14,7 +18,7 @@ pub async fn insert_account(e: &mut Tx, new_account: NewAccount) -> Result<Accou
         "#,
         new_account.name(),
         0i64,
-        new_account.owner_id()
+        user_id,
     )
     .fetch_one(e)
     .await
@@ -22,11 +26,16 @@ pub async fn insert_account(e: &mut Tx, new_account: NewAccount) -> Result<Accou
 }
 
 /// Fetch an account from the account table.
-pub async fn fetch_account(e: &mut Tx, id: i32) -> Result<Account, DbError> {
-    sqlx::query_as!(Account, r#"SELECT * FROM accounts WHERE id = $1"#, id)
-        .fetch_one(e)
-        .await
-        .map_err(DbError::from)
+pub async fn fetch_account(e: &mut Tx, user_id: i32, account_id: i32) -> Result<Account, DbError> {
+    sqlx::query_as!(
+        Account,
+        r#"SELECT * FROM accounts WHERE owner_id = $1 AND id = $2"#,
+        user_id,
+        account_id
+    )
+    .fetch_one(e)
+    .await
+    .map_err(DbError::from)
 }
 
 /// Increase balance on an account.

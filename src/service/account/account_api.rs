@@ -16,19 +16,21 @@ pub fn account_config(cfg: &mut web::ServiceConfig) {
         .service(withdraw);
 }
 
-#[actix_web::post("/accounts")]
+#[actix_web::post("/users/{user_id}/accounts")]
 #[has_roles(
     "Role::User",
     type = "Role",
-    secure = "new_account.owner_id() == claims.id() || claims.has_role(&Role::Admin)"
+    secure = "*user_id == claims.id() || claims.has_role(&Role::Admin)"
 )]
 pub async fn post_account(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
+    user_id: web::Path<i32>,
     new_account: web::Json<NewAccount>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.begin().await.map_err(DbError::from)?;
-    let account = account_repository::insert_account(&mut tx, new_account.into_inner()).await?;
+    let account =
+        account_repository::insert_account(&mut tx, *user_id, new_account.into_inner()).await?;
     tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Created().json(account))
 }
@@ -44,9 +46,9 @@ pub async fn get_account(
     claims: web::ReqData<Claims>,
     path_params: web::Path<(i32, i32)>,
 ) -> AppResult<HttpResponse> {
-    let account_id = path_params.1;
     let mut tx = db.begin().await.map_err(DbError::from)?;
-    let account = account_repository::fetch_account(&mut tx, account_id).await?;
+    let (user_id, account_id) = *path_params;
+    let account = account_repository::fetch_account(&mut tx, user_id, account_id).await?;
     if account.owner_id != claims.id() && !claims.has_role(&Role::Admin) {
         return Err(AppError::AuthorizationError);
     }
@@ -54,28 +56,40 @@ pub async fn get_account(
     Ok(HttpResponse::Ok().json(account))
 }
 
-#[actix_web::post("/accounts/{id}/deposits")]
+#[actix_web::post("/users/{user_id}/accounts/{account_id}/deposits")]
+#[has_roles(
+    "Role::User",
+    type = "Role",
+    secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
+)]
 pub async fn deposit(
     db: web::Data<DbPool>,
-    id: web::Path<i32>,
+    claims: web::ReqData<Claims>,
+    path_params: web::Path<(i32, i32)>,
     deposit: web::Json<Deposit>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.begin().await.map_err(DbError::from)?;
-    let account_id = id.into_inner();
+    let account_id = path_params.1;
     account_repository::deposit(&mut tx, account_id, deposit.amount()).await?;
     tx.commit().await.map_err(DbError::from)?;
     Ok(HttpResponse::Ok().finish())
 }
 
-#[actix_web::post("/accounts/{id}/withdrawals")]
+#[actix_web::post("/users/{user_id}/accounts/{account_id}/withdrawals")]
+#[has_roles(
+    "Role::User",
+    type = "Role",
+    secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
+)]
 pub async fn withdraw(
     db: web::Data<DbPool>,
-    id: web::Path<i32>,
+    claims: web::ReqData<Claims>,
+    path_params: web::Path<(i32, i32)>,
     withdrawal: web::Json<Withdrawal>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.begin().await.map_err(DbError::from)?;
 
-    let account_id = id.into_inner();
+    let account_id = path_params.1;
     let withdrawal = withdrawal.into_inner();
 
     // Try to make withdrawal

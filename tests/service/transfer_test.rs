@@ -22,7 +22,7 @@ async fn user_can_transfer_between_own_accounts() {
     let old_to = get_account(1, new_transfer.to_account, &user_token, &client, &app).await;
 
     let response = client
-        .post(format!("{}/api/transfers", app.address()))
+        .post(format!("{}/api/users/1/transfers", app.address()))
         .bearer_auth(&user_token)
         .json(&new_transfer)
         .send()
@@ -60,7 +60,7 @@ async fn user_can_transfer_to_non_owned_account() {
     let old_to = get_account(2, new_transfer.to_account, &admin_token, &client, &app).await;
 
     let response = client
-        .post(format!("{}/api/transfers", app.address()))
+        .post(format!("{}/api/users/1/transfers", app.address()))
         .bearer_auth(&user_token)
         .json(&new_transfer)
         .send()
@@ -94,7 +94,7 @@ async fn user_cannot_transfer_from_non_owned_account() {
     };
 
     let response = client
-        .post(format!("{}/api/transfers", app.address()))
+        .post(format!("{}/api/users/3/transfers", app.address()))
         .bearer_auth(&user_token)
         .json(&new_transfer)
         .send()
@@ -116,7 +116,7 @@ async fn admin_can_transfer_from_non_owned_account() {
     };
 
     let response = client
-        .post(format!("{}/api/transfers", app.address()))
+        .post(format!("{}/api/users/1/transfers", app.address()))
         .bearer_auth(&user_token)
         .json(&new_transfer)
         .send()

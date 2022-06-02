@@ -17,21 +17,27 @@ pub fn transfer_config(cfg: &mut web::ServiceConfig) {
     cfg.service(create_transfer);
 }
 
-#[actix_web::post("/transfers")]
+#[actix_web::post("/users/{user_id}/transfers")]
 #[has_roles(
     "Role::User",
     type = "Role",
-    secure = "new_transfer.from_account == claims.id() || claims.has_role(&Role::Admin)"
+    secure = "*user_id == claims.id() || claims.has_role(&Role::Admin)"
 )]
 pub async fn create_transfer(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
+    user_id: web::Path<i32>,
     new_transfer: web::Json<NewTransfer>,
 ) -> AppResult<HttpResponse> {
     let mut tx = db.get_ref().begin().await.map_err(DbError::from)?;
 
+    let user_id = *user_id;
+    let from = new_transfer.from_account;
+    let to = new_transfer.to_account;
+    let amount = new_transfer.amount;
+
     // Verify old account
-    let old_account = account_repository::fetch_account(&mut tx, new_transfer.from_account).await?;
+    let old_account = account_repository::fetch_account(&mut tx, user_id, from).await?;
 
     if new_transfer.amount as i64 > old_account.balance() {
         return Err(ServiceError::ValidationError(format!(
@@ -43,10 +49,10 @@ pub async fn create_transfer(
     }
 
     // Take from account
-    account_repository::withdraw(&mut tx, new_transfer.from_account, new_transfer.amount).await?;
+    account_repository::withdraw(&mut tx, from, amount).await?;
 
     // Give to account
-    account_repository::deposit(&mut tx, new_transfer.to_account, new_transfer.amount).await?;
+    account_repository::deposit(&mut tx, to, amount).await?;
 
     // Insert transfer
     let transfer = transfer_repository::insert_transfer(&mut tx, new_transfer.into_inner()).await?;

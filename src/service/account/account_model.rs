@@ -7,26 +7,19 @@ use sqlx::FromRow;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewAccount {
     name: String,
-    owner_id: i32,
 }
 
 impl NewAccount {
     /// Creates a new account.
     #[must_use]
-    pub fn new(name: String, owner_id: i32) -> Self {
-        Self { name, owner_id }
+    pub fn new(name: String) -> Self {
+        Self { name }
     }
 
     /// Get a reference to the new account's name.
     #[must_use]
     pub fn name(&self) -> &str {
         self.name.as_ref()
-    }
-
-    /// Get the new account's owner id.
-    #[must_use]
-    pub fn owner_id(&self) -> i32 {
-        self.owner_id
     }
 }
 

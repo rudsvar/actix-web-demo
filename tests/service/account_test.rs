@@ -7,12 +7,12 @@ async fn post_account_gives_201() {
     // Arrange
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let new_account = NewAccount::new("my_account".to_string(), 1);
+    let new_account = NewAccount::new("my_account".to_string());
 
     // Act
     let user_token = super::authenticate(&app, "user", "user").await;
     let response = client
-        .post(format!("{}/api/accounts", app.address()))
+        .post(format!("{}/api/users/1/accounts", app.address()))
         .bearer_auth(user_token)
         .json(&new_account)
         .send()
@@ -88,7 +88,7 @@ async fn deposit_increases_balance() {
     let deposit_amount = 50;
     let deposit = Deposit::new(deposit_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/deposits", app.address()))
+        .post(format!("{}/api/users/1/accounts/1/deposits", app.address()))
         .bearer_auth(&user_token)
         .json(&deposit)
         .send()
@@ -136,7 +136,10 @@ async fn withdraw_decreases_balance() {
     let withdrawal_amount = 50;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
+        .post(format!(
+            "{}/api/users/1/accounts/1/withdrawals",
+            app.address()
+        ))
         .bearer_auth(&user_token)
         .json(&withdrawal)
         .send()
@@ -170,7 +173,10 @@ async fn withdrawing_too_much_fails() {
     let withdrawal_amount = 500;
     let withdrawal = Withdrawal::new(withdrawal_amount);
     let response = client
-        .post(format!("{}/api/accounts/1/withdrawals", app.address()))
+        .post(format!(
+            "{}/api/users/1/accounts/1/withdrawals",
+            app.address()
+        ))
         .bearer_auth(user_token)
         .json(&withdrawal)
         .send()
