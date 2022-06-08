@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// The data stored in the jwt
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Claims {
-    id: i32,
+    sub: i32,
     exp: usize,
     roles: Vec<Role>,
 }
@@ -20,7 +20,7 @@ pub struct Claims {
 impl Claims {
     /// Returns the roles stored in the claim.
     pub fn id(&self) -> i32 {
-        self.id
+        self.sub
     }
     /// Returns the roles stored in the claim.
     pub fn roles(&self) -> &[Role] {
@@ -56,7 +56,7 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     let in_one_minute = Utc::now() + Duration::hours(1);
     let exp = in_one_minute.naive_utc().timestamp();
     let claims = Claims {
-        id: user_id,
+        sub: user_id,
         exp: exp as usize,
         roles,
     };
