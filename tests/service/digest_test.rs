@@ -4,7 +4,7 @@ use actix_web_demo::security::signature::{self, Algorithm, Headers};
 use openssl::hash::MessageDigest;
 use std::time::SystemTime;
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn request_with_digest_works() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -40,7 +40,7 @@ async fn request_with_digest_works() {
     assert_eq!(StatusCode::OK, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn request_with_wrong_digest_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -77,7 +77,7 @@ async fn request_with_wrong_digest_fails() {
     assert_eq!(StatusCode::UNAUTHORIZED, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn request_with_body_but_no_digest_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -107,7 +107,7 @@ async fn request_with_body_but_no_digest_fails() {
     assert_eq!(StatusCode::UNAUTHORIZED, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn not_signing_digest_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();

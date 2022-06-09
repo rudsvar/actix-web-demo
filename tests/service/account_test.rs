@@ -2,7 +2,7 @@ use crate::common::spawn_test_app;
 use actix_http::StatusCode;
 use actix_web_demo::service::account::account_model::{Account, Deposit, NewAccount, Withdrawal};
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn post_account_gives_201() {
     // Arrange
     let app = spawn_test_app().await;
@@ -29,7 +29,7 @@ async fn post_account_gives_201() {
     assert_eq!(1, created_account.owner_id());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn get_account_gives_200() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -48,7 +48,7 @@ async fn get_account_gives_200() {
     assert_eq!(Account::new(1, "acc1".to_string(), 100, 1), account);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn get_missing_account_gives_404() {
     let app = spawn_test_app().await;
     let user_token = super::authenticate(&app, "user", "user").await;
@@ -65,7 +65,7 @@ async fn get_missing_account_gives_404() {
     assert_eq!(StatusCode::NOT_FOUND, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn deposit_increases_balance() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -115,7 +115,7 @@ async fn deposit_increases_balance() {
     );
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn withdraw_decreases_balance() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -163,7 +163,7 @@ async fn withdraw_decreases_balance() {
     );
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn withdrawing_too_much_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();

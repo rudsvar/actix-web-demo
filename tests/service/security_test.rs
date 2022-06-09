@@ -2,7 +2,7 @@ use super::authenticate;
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn user_can_access_user_endpoint() {
     // Arrange
     let app = spawn_test_app().await;
@@ -21,7 +21,7 @@ async fn user_can_access_user_endpoint() {
     assert_eq!(StatusCode::OK, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn user_cannot_access_admin_endpoint() {
     // Arrange
     let app = spawn_test_app().await;
@@ -40,7 +40,7 @@ async fn user_cannot_access_admin_endpoint() {
     assert_eq!(StatusCode::FORBIDDEN, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn admin_can_access_admin() {
     // Arrange
     let app = spawn_test_app().await;
@@ -59,7 +59,7 @@ async fn admin_can_access_admin() {
     assert_eq!(StatusCode::OK, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn admin_can_access_user() {
     // Arrange
     let app = spawn_test_app().await;
@@ -76,4 +76,22 @@ async fn admin_can_access_user() {
 
     // Assert
     assert_eq!(StatusCode::OK, response.status());
+}
+
+#[actix_web::test]
+async fn https_health_check_works() {
+    // Arrange
+    let app = spawn_test_app().await;
+    let client = reqwest::Client::new();
+
+    // Act
+    let response = client
+        .get(format!("{}/health", app.https_address()))
+        .send()
+        .await
+        .expect("failed to execute request");
+
+    // Assert
+    assert_eq!(StatusCode::OK, response.status());
+    assert_eq!(Some(0), response.content_length());
 }

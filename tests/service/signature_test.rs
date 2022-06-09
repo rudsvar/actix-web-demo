@@ -3,7 +3,7 @@ use actix_http::{header::HttpDate, StatusCode};
 use actix_web_demo::security::signature::{self, Algorithm, Headers, SignatureHeader};
 use std::time::SystemTime;
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn signed_request_works() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -31,7 +31,7 @@ async fn signed_request_works() {
     assert_eq!(StatusCode::OK, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn edited_signed_request_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -59,7 +59,7 @@ async fn edited_signed_request_fails() {
     assert_eq!(StatusCode::UNAUTHORIZED, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn signed_with_wrong_key_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -89,7 +89,7 @@ async fn signed_with_wrong_key_fails() {
     assert_eq!(StatusCode::UNAUTHORIZED, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn invalid_signature_string_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -111,7 +111,7 @@ async fn invalid_signature_string_fails() {
     assert_eq!(StatusCode::BAD_REQUEST, response.status());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn unsigned_request_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();

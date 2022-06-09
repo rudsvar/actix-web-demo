@@ -13,12 +13,17 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 
 pub struct TestApp {
     address: String,
+    https_address: String,
     db: DbPool,
 }
 
 impl TestApp {
     pub fn address(&self) -> &str {
         &self.address
+    }
+
+    pub fn https_address(&self) -> &str {
+        &self.https_address
     }
 
     pub fn db(&self) -> &DbPool {
@@ -68,6 +73,7 @@ pub async fn spawn_test_app() -> TestApp {
 
     // Only need http for tests
     let address = format!("http://{}", http_listener.local_addr().unwrap());
+    let https_address = format!("https://{}", https_listener.local_addr().unwrap());
 
     let configuration = load_configuration().expect("Failed to read configuration");
     let db = test_db(configuration.database).await;
@@ -75,5 +81,9 @@ pub async fn spawn_test_app() -> TestApp {
         .expect("Failed to bind address");
     let _ = tokio::spawn(server);
 
-    TestApp { address, db }
+    TestApp {
+        address,
+        https_address,
+        db,
+    }
 }

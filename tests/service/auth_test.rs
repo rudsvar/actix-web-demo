@@ -2,7 +2,7 @@ use crate::common::spawn_test_app;
 use actix_http::StatusCode;
 use actix_web_demo::service::client_context::ClientContext;
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn health_check_works() {
     // Arrange
     let app = spawn_test_app().await;
@@ -10,7 +10,7 @@ async fn health_check_works() {
 
     // Act
     let response = client
-        .get(format!("{}/health_check", app.address()))
+        .get(format!("{}/health", app.address()))
         .send()
         .await
         .expect("failed to execute request");
@@ -20,7 +20,7 @@ async fn health_check_works() {
     assert_eq!(Some(0), response.content_length());
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn client_context_success() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
@@ -39,7 +39,7 @@ async fn client_context_success() {
     );
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn user_creation_to_token_verification() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();

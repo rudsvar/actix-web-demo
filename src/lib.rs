@@ -19,7 +19,7 @@ use graphql::schema::create_schema;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use service::{
     client_context::client_context,
-    health_check::health_check,
+    health_check::health,
     token::{request_token, verify_token},
 };
 use sqlx::{PgPool, Postgres, Transaction};
@@ -73,7 +73,7 @@ pub fn run_app(
             .service(graphql::graphql_playground)
             .wrap(Cors::permissive())
             // Health check
-            .service(health_check)
+            .service(health)
             .service(request_token)
             .service(verify_token)
             // Other

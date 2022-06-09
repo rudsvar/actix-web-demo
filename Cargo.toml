@@ -65,5 +65,4 @@ features = [
 
 [dev-dependencies]
 reqwest = { version = "0.11.6", features = ["json"] }
-actix-rt = "2.5.0"
 once_cell = "1.9.0"
