@@ -1,12 +1,17 @@
 //! Types and functions for setting up application security.
 
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+};
+
 use crate::{error::AppError, service::user::user_db, DbPool};
-use actix_http::HttpMessage;
+use actix_http::{HttpMessage, StatusCode};
 use actix_web::{dev::ServiceRequest, Error};
 use actix_web_grants::permissions::AttachPermissions;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
-use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
 /// The data stored in the jwt
@@ -42,6 +47,24 @@ pub enum Role {
     Admin,
 }
 
+fn file_to_bytes(path: &str) -> Result<Vec<u8>, AppError> {
+    let mut buf = Vec::new();
+    let file = File::open(path).map_err(|_| {
+        AppError::CustomError(
+            format!("failed to open {}", path),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    })?;
+    let mut file = BufReader::new(file);
+    file.read_to_end(&mut buf).map_err(|_| {
+        AppError::CustomError(
+            format!("failed to read {}", path),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    })?;
+    Ok(buf)
+}
+
 /// Create a jwt for the provided user.
 pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
     // Authenticate user
@@ -52,8 +75,10 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     // Fetch user roles
     let roles = user_db::fetch_roles(conn, username).await?;
 
+    let config = crate::configuration::load_configuration()?;
+
     // Set claims
-    let in_one_minute = Utc::now() + Duration::hours(1);
+    let in_one_minute = Utc::now() + Duration::minutes(config.security.jwt_minutes_to_live);
     let exp = in_one_minute.naive_utc().timestamp();
     let claims = Claims {
         sub: user_id,
@@ -62,28 +87,42 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     };
 
     // Read secret from config
-    let config = crate::configuration::load_configuration()?;
+    let private_key_path = config.security.jwt_private_key;
+    let private_key = file_to_bytes(&private_key_path)?;
+    let encoding_key = EncodingKey::from_ec_pem(&private_key).map_err(|e| {
+        AppError::CustomError(
+            format!("failed to create encoding key: {}", e),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    })?;
 
     // Create jwt
     let token = jsonwebtoken::encode(
-        &jsonwebtoken::Header::default(),
+        &jsonwebtoken::Header::new(Algorithm::ES256),
         &claims,
-        &EncodingKey::from_secret(config.security.jwt_secret.as_bytes()),
+        &encoding_key,
     )
-    .unwrap();
+    .map_err(|_| AppError::AuthenticationError)?;
 
     Ok(token)
 }
 
 /// Decode a jwt into its claims.
 pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
+    // Read secret from config
     let config = crate::configuration::load_configuration()?;
-    let decoded = jsonwebtoken::decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(config.security.jwt_secret.as_bytes()),
-        &Validation::default(),
-    )
-    .map_err(|_| AppError::AuthenticationError)?;
+    let public_key_path = config.security.jwt_public_key;
+    let public_key = file_to_bytes(&public_key_path)?;
+    let decoding_key = DecodingKey::from_ec_pem(&public_key).map_err(|_| {
+        AppError::CustomError(
+            "failed to create decoding key".to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    })?;
+
+    let decoded =
+        jsonwebtoken::decode::<Claims>(token, &decoding_key, &Validation::new(Algorithm::ES256))
+            .map_err(|_| AppError::AuthenticationError)?;
     Ok(decoded.claims)
 }
 

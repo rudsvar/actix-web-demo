@@ -25,12 +25,20 @@ pub struct ServerSettings {
 /// Security settings.
 #[derive(Clone, Debug, serde:: Deserialize)]
 pub struct SecuritySettings {
-    /// JSON Web Token secret.
-    pub jwt_secret: String,
-    /// TLS certificate.
-    pub certificate: String,
-    /// TLS private key.
-    pub private_key: String,
+    /// SSL certificate.
+    pub ssl_certificate: String,
+    /// SSL private key.
+    pub ssl_private_key: String,
+    /// JWT private key.
+    pub jwt_private_key: String,
+    /// JWT public key.
+    pub jwt_public_key: String,
+    /// JWT public key.
+    pub jwt_minutes_to_live: i64,
+    /// Signing private key.
+    pub signing_private_key: String,
+    /// Signing public key.
+    pub signing_public_key: String,
 }
 
 /// Database settings.

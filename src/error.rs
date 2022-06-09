@@ -24,6 +24,9 @@ pub enum AppError {
     /// Error during authentication.
     #[error("authorization error")]
     AuthorizationError,
+    /// Other miscellaneous errors.
+    #[error("{0}")]
+    CustomError(String, StatusCode),
 }
 
 impl ResponseError for AppError {
@@ -34,6 +37,7 @@ impl ResponseError for AppError {
             AppError::ConfigError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::AuthenticationError => StatusCode::UNAUTHORIZED,
             AppError::AuthorizationError => StatusCode::FORBIDDEN,
+            AppError::CustomError(_, code) => *code,
         }
     }
 
