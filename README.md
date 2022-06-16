@@ -34,6 +34,14 @@ To customize the log level, use the `RUST_LOG` environment variable.
     ```
     See <https://stackoverflow.com/questions/15686821/generate-ec-keypair-from-openssl-command-line> for more information.
 
+# Benchmarks
+
+To discover performance bottlenecks, take a look at https://github.com/flamegraph-rs/flamegraph. Note that you might have issues installing it in WSL; if so, take a look at https://stackoverflow.com/a/65276025.
+
+```
+PERF=/usr/lib/linux-tools/5.4.0-120-generic/perf cargo flamegraph
+```
+
 # TODO
 
 - Complete securing API with actix-web-grants.
