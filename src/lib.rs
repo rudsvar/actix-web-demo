@@ -10,6 +10,7 @@
 use crate::middleware::{DigestFilter, SignatureFilter};
 use crate::security::jwt::Role;
 use actix_cors::Cors;
+use actix_web::web::Payload;
 use actix_web::HttpResponse;
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web_grants::proc_macro::has_roles;
@@ -95,6 +96,7 @@ pub fn run_app(
                     .wrap(DigestFilter)
                     .route("", web::get().to(HttpResponse::Ok)),
             )
+            .route("/echo", web::post().to(echo))
     })
     .listen(http_listener)?
     .listen_openssl(https_listener, ssl_builder)?
@@ -110,6 +112,10 @@ async fn user() -> HttpResponse {
 #[has_roles("Role::Admin", type = "Role")]
 async fn admin() -> HttpResponse {
     HttpResponse::Ok().body("Hello admin!".to_string())
+}
+
+async fn echo(payload: Payload) -> HttpResponse {
+    HttpResponse::Ok().streaming(payload)
 }
 
 fn ssl_builder() -> SslAcceptorBuilder {
