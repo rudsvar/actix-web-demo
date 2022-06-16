@@ -41,11 +41,3 @@ To discover performance bottlenecks, take a look at https://github.com/flamegrap
 ```
 PERF=/usr/lib/linux-tools/5.4.0-120-generic/perf cargo flamegraph
 ```
-
-# TODO
-
-- Complete securing API with actix-web-grants.
-- More detailed logging.
-- Automated deployment.
-- Generate OpenAPI contract and add Swagger UI, utoipa is looking promising: https://github.com/juhaku/utoipa
-- Further develop GraphQL example.
