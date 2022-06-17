@@ -10,14 +10,16 @@
 use crate::middleware::{DigestFilter, SignatureFilter};
 use crate::security::jwt::Role;
 use actix_cors::Cors;
-use actix_web::web::Payload;
-use actix_web::HttpResponse;
+use actix_web::web::{Json, Payload};
 use actix_web::{dev::Server, web, App, HttpServer};
+use actix_web::{Error, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use error::AppError;
 use graphql::schema::create_schema;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
+use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
+use serde::{Deserialize, Serialize};
 use service::{
     client_context::client_context,
     health_check::health,
@@ -97,6 +99,14 @@ pub fn run_app(
                     .route("", web::get().to(HttpResponse::Ok)),
             )
             .route("/echo", web::post().to(echo))
+            .wrap_api()
+            .service(
+                paperclip::actix::web::resource("/pets")
+                    .route(paperclip::actix::web::post().to(echo_pet)),
+            )
+            .with_json_spec_at("/spec/v2")
+            .with_swagger_ui_at("/swagger-ui")
+            .build()
     })
     .listen(http_listener)?
     .listen_openssl(https_listener, ssl_builder)?
@@ -116,6 +126,17 @@ async fn admin() -> HttpResponse {
 
 async fn echo(payload: Payload) -> HttpResponse {
     HttpResponse::Ok().streaming(payload)
+}
+
+#[derive(Serialize, Deserialize, Apiv2Schema)]
+struct Pet {
+    name: String,
+    id: Option<i64>,
+}
+
+#[api_v2_operation]
+async fn echo_pet(body: Json<Pet>) -> Result<Json<Pet>, Error> {
+    Ok(body)
 }
 
 fn ssl_builder() -> SslAcceptorBuilder {

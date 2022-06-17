@@ -14,6 +14,7 @@ actix-web-httpauth = "0.6.0"
 actix-web-grants = "3.0.0"
 actix-web-lab = "0.16.1"
 actix-cors = "0.6.1"
+paperclip = { version = "0.7.0", features = ["actix4", "swagger-ui"] }
 
 # Tools
 itertools = "0.10.3"
