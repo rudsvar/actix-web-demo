@@ -19,6 +19,7 @@ use error::AppError;
 use graphql::schema::create_schema;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
+use paperclip::v2::models::{DefaultApiRaw, Info, SecurityScheme};
 use serde::{Deserialize, Serialize};
 use service::{
     client_context::client_context,
@@ -99,7 +100,7 @@ pub fn run_app(
                     .route("", web::get().to(HttpResponse::Ok)),
             )
             .route("/echo", web::post().to(echo))
-            .wrap_api()
+            .wrap_api_with_spec(openapi_spec())
             .service(
                 paperclip::actix::web::resource("/pets")
                     .route(paperclip::actix::web::post().to(echo_pet)),
@@ -112,6 +113,26 @@ pub fn run_app(
     .listen_openssl(https_listener, ssl_builder)?
     .run();
     Ok(server)
+}
+
+/// Common configuration for entire API.
+fn openapi_spec() -> DefaultApiRaw {
+    let mut spec = DefaultApiRaw {
+        info: Info {
+            title: "actix-web-demo API".to_string(),
+            description: Some("An API for managing users, accounts, and transactions".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let security_scheme = SecurityScheme {
+        type_: "apiKey".to_string(),
+        in_: Some("header".to_string()),
+        ..Default::default()
+    };
+    spec.security_definitions
+        .insert("Authorization".to_string(), security_scheme);
+    spec
 }
 
 #[has_roles("Role::User", type = "Role")]
