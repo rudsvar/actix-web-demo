@@ -111,7 +111,7 @@ impl Display for SignatureHeader {
         let signature = &self.signature;
         write!(
             f,
-            r#"Signature keyId="{key_id}", algorithm="{algorithm}", headers="{headers}", signature="{signature}""#
+            r#"keyId="{key_id}", algorithm="{algorithm}", headers="{headers}", signature="{signature}""#
         )
     }
 }
@@ -124,9 +124,8 @@ impl FromStr for SignatureHeader {
     type Err = SignatureHeaderParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let without_signature = s.trim_start_matches("Signature ");
         let mut map = HashMap::new();
-        for kv in without_signature.split(", ") {
+        for kv in s.split(", ") {
             let mut kv = kv.split('=');
             let key = kv.next().ok_or(SignatureHeaderParseError)?;
             let value = kv
@@ -375,7 +374,7 @@ mod tests {
             "KJdh1i2&YD7yo8172i".to_string(),
         );
         assert_eq!(
-            r#"Signature keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#,
+            r#"keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#,
             signature.to_string()
         )
     }
@@ -394,7 +393,7 @@ mod tests {
         );
         assert_eq!(
             Ok(signature),
-            r#"Signature keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#.parse(),
+            r#"keyId="abc123", algorithm="ecdsa-sha256", headers="(request-target) date digest", signature="KJdh1i2&YD7yo8172i""#.parse(),
         )
     }
 }
