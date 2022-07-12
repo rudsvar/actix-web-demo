@@ -1,6 +1,12 @@
 build:
 	cargo build
 
+sqlx-prepare:
+	cargo sqlx prepare -- --lib
+
+build-offline:
+	SQLX_OFFLINE=true cargo build
+
 run:
 	RUST_LOG=info,tracing_actix_web=warn,actix_web_demo=debug,sqlx=off cargo run
 

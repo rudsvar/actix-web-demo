@@ -1,6 +1,5 @@
-use std::net::TcpListener;
-
 use actix_web_demo::{configuration::load_configuration, DbPool};
+use std::net::TcpListener;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -11,9 +10,7 @@ async fn main() -> std::io::Result<()> {
 
     // Connect to db
     let connection_string = configuration.database.connection_string();
-    let db_pool = DbPool::connect(&connection_string)
-        .await
-        .expect("could not connect to db");
+    let db_pool = DbPool::connect_lazy(&connection_string).expect("could not connect to db");
 
     // Create http listener
     let http_addr = format!("127.0.0.1:{}", configuration.server.http_port);

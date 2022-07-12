@@ -1,0 +1,361 @@
+{
+  "db": "PostgreSQL",
+  "018295fce458412556b43fa25bf905f3273c472ae832e8114b488b0111f31800": {
+    "query": "\n            UPDATE accounts\n            SET balance = balance - $1\n            WHERE id = $2\n            RETURNING *\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "balance",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "owner_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "537ed2affb3d33b6c56dcdcd96041c022ad2c4c8f65427f91a5c94e90bf50c31": {
+    "query": "SELECT id, name, password as \"password: HashedPassword\", created_at FROM users",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password: HashedPassword",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "63aff6c1ae177ba1c335927b15ed40bddf60095afc669e42d1b118f8df128ecd": {
+    "query": "\n        UPDATE accounts\n        SET balance = balance + $1\n        WHERE id = $2\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "7252176fb46d6eee598d889842bbb324df33fcf188038ca588a75cdd6ff1c42d": {
+    "query": "\n            INSERT INTO accounts (name, balance, owner_id)\n            VALUES ($1, $2, $3)\n            RETURNING *\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "balance",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "owner_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int8",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "935443876aead18cf92ac1b3e9ea93f97a523a2e19f603844aef51a38692af04": {
+    "query": "\n        select r.name as \"name: Role\"\n        from role r, user_role u_r, users u\n        where r.id = u_r.role_id\n          and u_r.user_id = u.id\n          and u.name = $1;\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "name: Role",
+          "type_info": {
+            "Custom": {
+              "name": "role_name",
+              "kind": {
+                "Enum": [
+                  "User",
+                  "Admin"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "9d5f90036ad98803be126fe2761e37c6937f8c3990024f641edaf625dfd0236a": {
+    "query": "SELECT id, name, password as \"password: HashedPassword\", created_at FROM users WHERE name = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password: HashedPassword",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "b2cee7d709b35e6dbbe2114ef38b928fc24bb73b13a93bbe9ad0d98dd7f1292d": {
+    "query": "\n        INSERT INTO users (name, password)\n        VALUES ($1, $2)\n        RETURNING id, name, password as \"password: HashedPassword\", created_at\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password: HashedPassword",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "b2f56f9f1dd7e8f63b0ab068c9e734a38101340bad653d164b81efcc0044219c": {
+    "query": "\n        INSERT INTO transfers (from_account, to_account, amount)\n        VALUES ($1, $2, $3)\n        RETURNING *\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "from_account",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "to_account",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "amount",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c702680d0c2396d1f06e5d13a2e37edec53d3be33e428699b48b1c1574743652": {
+    "query": "SELECT * FROM accounts WHERE owner_id = $1 AND id = $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "balance",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "owner_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "e4d967047230ad54260ede090c70c3176dea2ec96d7f67f4dd1160c044c2f771": {
+    "query": "SELECT id, name, password as \"password: HashedPassword\", created_at FROM users WHERE id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password: HashedPassword",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  }
+}
