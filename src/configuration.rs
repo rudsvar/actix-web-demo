@@ -14,8 +14,10 @@ pub struct Settings {
 }
 
 /// Server settings.
-#[derive(Clone, Copy, Debug, serde:: Deserialize)]
+#[derive(Clone, Debug, serde:: Deserialize)]
 pub struct ServerSettings {
+    /// Server address.
+    pub address: String,
     /// Server http port.
     pub http_port: u16,
     /// Server https port.

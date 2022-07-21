@@ -138,7 +138,7 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
 pub async fn validate_jwt(
     req: ServiceRequest,
     credentials: BearerAuth,
-) -> Result<ServiceRequest, Error> {
+) -> Result<ServiceRequest, (Error, ServiceRequest)> {
     let token = credentials.token();
     if let Ok(claims) = decode_jwt(token) {
         tracing::debug!("Found claims: {:?}", claims);
@@ -146,6 +146,6 @@ pub async fn validate_jwt(
         req.extensions_mut().insert(claims);
         Ok(req)
     } else {
-        Err(AppError::AuthenticationError.into())
+        Err((AppError::AuthenticationError.into(), req))
     }
 }

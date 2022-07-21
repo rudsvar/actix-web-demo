@@ -8,9 +8,9 @@ edition = "2021"
 [dependencies]
 
 # Actix
-actix-web = { version = "4.0.1", features = ["openssl"] }
-actix-http = "3.0.4"
-actix-web-httpauth = "0.6.0"
+actix-web = { version = "4.1.0", features = ["openssl"] }
+actix-http = "3.2.1"
+actix-web-httpauth = "0.7.0"
 actix-web-grants = "3.0.0"
 actix-web-lab = "0.16.1"
 actix-cors = "0.6.1"
@@ -19,7 +19,7 @@ paperclip = { version = "0.7.0", features = ["actix4", "swagger-ui"] }
 # Tools
 itertools = "0.10.3"
 
-tokio = "1.14.0"
+tokio = "1.20.0"
 serde = "1.0.130"
 serde_json = "1.0.78"
 config = "0.13.1"
@@ -40,8 +40,8 @@ tracing-subscriber = { version = "0.3.4", features = [
   "json",
 ] }
 tracing-log = "0.1.2"
-tracing-actix-web = "0.5.0-beta.6"
-console-subscriber = "0.1.3"
+tracing-actix-web = "0.6.0"
+console-subscriber = "0.1.6"
 
 # Security and validation
 bcrypt = "0.13.0"
@@ -51,7 +51,7 @@ validator = { version = "0.15.0", features = ["derive"] }
 openssl = "0.10.40"
 
 [dependencies.sqlx]
-version = "0.5.9"
+version = "0.6.0"
 default-features = false
 features = [
   "runtime-actix-rustls",
