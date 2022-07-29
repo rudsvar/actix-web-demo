@@ -26,7 +26,7 @@ uuid = { version = "1.0.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 thiserror = "1.0.30"
 futures = "0.3.19"
-juniper = "0.15.9"
+juniper = "0.15.10"
 
 derive_more = "0.99.17"
 async-trait = "0.1.53"
