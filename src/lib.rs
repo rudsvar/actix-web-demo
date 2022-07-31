@@ -35,6 +35,7 @@ use tracing_actix_web::TracingLogger;
 pub mod configuration;
 pub mod error;
 pub mod graphql;
+pub mod logging;
 pub mod middleware;
 pub mod security;
 pub mod service;

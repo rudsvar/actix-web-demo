@@ -41,6 +41,7 @@ tracing-subscriber = { version = "0.3.4", features = [
 ] }
 tracing-log = "0.1.2"
 tracing-actix-web = "0.6.0"
+tracing-bunyan-formatter = "0.3.3"
 console-subscriber = "0.1.6"
 
 # Security and validation

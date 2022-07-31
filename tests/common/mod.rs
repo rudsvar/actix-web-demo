@@ -1,6 +1,6 @@
 use actix_web_demo::{
     configuration::{load_configuration, DatabaseSettings},
-    DbPool,
+    logging, DbPool,
 };
 use once_cell::sync::Lazy;
 use sqlx::Executor;
@@ -8,7 +8,7 @@ use std::net::TcpListener;
 use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
-    tracing_subscriber::fmt::init();
+    logging::init_logging();
 });
 
 pub struct TestApp {

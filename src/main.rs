@@ -3,8 +3,7 @@ use std::net::TcpListener;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    console_subscriber::init();
-    tracing_subscriber::fmt().finish();
+    actix_web_demo::logging::init_logging();
 
     let configuration = load_configuration().expect("could not read configuration");
 
