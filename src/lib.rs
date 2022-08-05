@@ -7,6 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
+use crate::grpc::string::MyStringService;
 use crate::middleware::{DigestFilter, SignatureFilter};
 use crate::security::jwt::Role;
 use actix_cors::Cors;
@@ -17,6 +18,7 @@ use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use error::AppError;
 use graphql::schema::create_schema;
+use grpc::string::generated::string_service_server::StringServiceServer;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
 use paperclip::v2::models::{DefaultApiRaw, Info, SecurityScheme};
@@ -28,7 +30,7 @@ use service::{
 };
 use sqlx::{PgPool, Postgres, Transaction};
 use std::io::{self};
-use std::net::TcpListener;
+use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
 use tracing_actix_web::TracingLogger;
 
@@ -50,6 +52,16 @@ pub type DbPool = PgPool;
 
 /// The database transaction type.
 pub type Tx = Transaction<'static, Postgres>;
+
+/// Starts the gRPC server.
+pub async fn run_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
+    tracing::info!("Starting gRPC server on address {}", addr);
+    let string_service = MyStringService::default();
+    tonic::transport::Server::builder()
+        .add_service(StringServiceServer::new(string_service))
+        .serve(addr)
+        .await
+}
 
 /// Starts a [`Server`].
 pub fn run_app(
