@@ -50,7 +50,9 @@ jsonwebtoken = "8.0.1"
 base64 = "0.13.0"
 validator = { version = "0.15.0", features = ["derive"] }
 openssl = "0.10.40"
-tonic = "0.8.0"
+
+# gRPC
+tonic = { version = "0.8.0", features = ["tls"] }
 prost = "0.11.0"
 
 [dependencies.sqlx]

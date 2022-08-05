@@ -32,6 +32,7 @@ use sqlx::{PgPool, Postgres, Transaction};
 use std::io::{self};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
+use tonic::transport::{Identity, ServerTlsConfig};
 use tracing_actix_web::TracingLogger;
 
 pub mod configuration;
@@ -57,7 +58,17 @@ pub type Tx = Transaction<'static, Postgres>;
 pub async fn run_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
     tracing::info!("Starting gRPC server on address {}", addr);
     let string_service = MyStringService::default();
+
+    let cert = tokio::fs::read("./test-cert.pem")
+        .await
+        .expect("failed to read TLS cert");
+    let key = tokio::fs::read("./test-key.pem")
+        .await
+        .expect("failed to read TLS key");
+    let identity = Identity::from_pem(cert, key);
+
     tonic::transport::Server::builder()
+        .tls_config(ServerTlsConfig::new().identity(identity))?
         .add_service(StringServiceServer::new(string_service))
         .serve(addr)
         .await

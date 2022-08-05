@@ -17,6 +17,7 @@ pub struct MyStringService;
 impl StringService for MyStringService {
     async fn echo(&self, req: Request<Message>) -> Result<Response<Message>, Status> {
         let req = req.into_inner();
+        tracing::debug!("Echoing string {:?}", req.message);
         Ok(Response::new(Message {
             message: req.message,
         }))
@@ -24,9 +25,9 @@ impl StringService for MyStringService {
 
     async fn reverse(&self, req: Request<Message>) -> Result<Response<Message>, Status> {
         let req = req.into_inner();
-        Ok(Response::new(Message {
-            message: req.message.chars().rev().collect(),
-        }))
+        let reversed = req.message.chars().rev().collect();
+        tracing::debug!("Reversing string {:?} to {:?}", req.message, reversed);
+        Ok(Response::new(Message { message: reversed }))
     }
 }
 
