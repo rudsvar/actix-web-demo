@@ -1,0 +1,15 @@
+ syntax = "proto3";
+
+ package echo;
+
+ // A general message.
+ message Message {
+   // A general message string.
+   string message = 1;
+ }
+
+ // Echo is the echo service.
+ service StringService {
+   rpc Echo(Message) returns (Message) {}
+   rpc Reverse(Message) returns (Message) {}
+ }
