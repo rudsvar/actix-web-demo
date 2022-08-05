@@ -1,6 +1,6 @@
  syntax = "proto3";
 
- package echo;
+ package string;
 
  // A general message.
  message Message {

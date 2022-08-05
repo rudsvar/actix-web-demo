@@ -4,7 +4,7 @@ use tonic::{Request, Response, Status};
 
 /// Generated types for the echo service.
 pub mod generated {
-    tonic::include_proto!("echo");
+    tonic::include_proto!("string");
 }
 
 use generated::{string_service_server::StringService, Message};
