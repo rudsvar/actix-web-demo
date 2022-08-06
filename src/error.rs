@@ -5,6 +5,7 @@ use actix_web::ResponseError;
 use config::ConfigError;
 use sqlx::postgres::PgDatabaseError;
 use thiserror::Error;
+use tonic::Status;
 
 /// A general application error.
 #[derive(Debug, Error)]
@@ -112,6 +113,17 @@ impl From<sqlx::Error> for DbError {
                 }
             }
             e => DbError::Other(e),
+        }
+    }
+}
+
+impl From<DbError> for Status {
+    fn from(e: DbError) -> Self {
+        let message = format!("{}", e);
+        match e {
+            DbError::NotFound => Status::not_found(message),
+            DbError::Conflict => Status::already_exists(message),
+            _ => Status::internal(message),
         }
     }
 }

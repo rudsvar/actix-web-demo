@@ -1,15 +1,15 @@
- syntax = "proto3";
+syntax = "proto3";
 
- package string;
+package string;
 
- // A general message.
- message Message {
-   // A general message string.
-   string message = 1;
- }
+// A general message.
+message Message {
+  // A general message string.
+  string message = 1;
+}
 
- // Echo is the echo service.
- service StringService {
-   rpc Echo(Message) returns (Message) {}
-   rpc Reverse(Message) returns (Message) {}
- }
+// Echo is the echo service.
+service StringService {
+  rpc Echo(Message) returns (Message) {}
+  rpc Reverse(Message) returns (Message) {}
+}

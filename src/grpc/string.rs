@@ -1,4 +1,4 @@
-//! The echo gRPC service.
+//! The string gRPC service.
 
 use tonic::{Request, Response, Status};
 

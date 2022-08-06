@@ -7,6 +7,7 @@
 
 //! A demo web service implemented with actix web.
 
+use crate::grpc::account::AccountServiceImpl;
 use crate::grpc::string::MyStringService;
 use crate::middleware::{DigestFilter, SignatureFilter};
 use crate::security::jwt::Role;
@@ -18,6 +19,7 @@ use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use error::AppError;
 use graphql::schema::create_schema;
+use grpc::account::generated::account_service_server::AccountServiceServer;
 use grpc::string::generated::string_service_server::StringServiceServer;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
@@ -55,9 +57,8 @@ pub type DbPool = PgPool;
 pub type Tx = Transaction<'static, Postgres>;
 
 /// Starts the gRPC server.
-pub async fn run_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
+pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> Result<(), tonic::transport::Error> {
     tracing::info!("Starting gRPC server on address {}", addr);
-    let string_service = MyStringService::default();
 
     let cert = tokio::fs::read("./test-cert.pem")
         .await
@@ -69,7 +70,8 @@ pub async fn run_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
 
     tonic::transport::Server::builder()
         .tls_config(ServerTlsConfig::new().identity(identity))?
-        .add_service(StringServiceServer::new(string_service))
+        .add_service(StringServiceServer::new(MyStringService::default()))
+        .add_service(AccountServiceServer::new(AccountServiceImpl::new(db)))
         .serve(addr)
         .await
 }

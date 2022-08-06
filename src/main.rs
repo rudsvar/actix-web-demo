@@ -11,7 +11,7 @@ async fn main() -> std::io::Result<()> {
     let connection_string = configuration.database.connection_string();
     let db_pool = DbPool::connect_lazy(&connection_string).expect("could not connect to db");
 
-    let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse().unwrap());
+    let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse().unwrap(), db_pool.clone());
     tokio::spawn(grpc);
 
     // Create http listener

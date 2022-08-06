@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package account;
+
+// An account id.
+message AccountRequest {
+  // A user id.
+  int32 user_id = 1;
+  // An account id.
+  int32 account_id = 2;
+}
+
+// Account information
+message AccountResponse {
+   // The account id.
+   int32 id = 1;
+   // The name of the account.
+   string name = 2;
+   // The current balance of the account.
+   int64 balance = 3;
+   // The owner of the account.
+   int32 owner_id = 4;
+}
+
+// Echo is the echo service.
+service AccountService {
+  rpc GetAccount(AccountRequest) returns (AccountResponse) {}
+}
