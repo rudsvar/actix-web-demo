@@ -10,7 +10,7 @@
 use crate::grpc::account::AccountServiceImpl;
 use crate::grpc::string::MyStringService;
 use crate::middleware::{DigestFilter, SignatureFilter};
-use crate::security::jwt::Role;
+use crate::security::jwt::{jwt_interceptor, Role};
 use actix_cors::Cors;
 use actix_web::web::{Json, Payload};
 use actix_web::{dev::Server, web, App, HttpServer};
@@ -34,6 +34,7 @@ use sqlx::{PgPool, Postgres, Transaction};
 use std::io::{self};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
+use tonic::service::interceptor;
 use tonic::transport::{Identity, ServerTlsConfig};
 use tracing_actix_web::TracingLogger;
 
@@ -60,16 +61,18 @@ pub type Tx = Transaction<'static, Postgres>;
 pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> Result<(), tonic::transport::Error> {
     tracing::info!("Starting gRPC server on address {}", addr);
 
-    let cert = tokio::fs::read("./test-cert.pem")
+    let config = configuration::load_configuration().expect("failed to read configuration");
+    let cert = tokio::fs::read(config.security.ssl_certificate)
         .await
         .expect("failed to read TLS cert");
-    let key = tokio::fs::read("./test-key.pem")
+    let key = tokio::fs::read(config.security.ssl_private_key)
         .await
         .expect("failed to read TLS key");
     let identity = Identity::from_pem(cert, key);
 
     tonic::transport::Server::builder()
         .tls_config(ServerTlsConfig::new().identity(identity))?
+        .layer(interceptor(jwt_interceptor))
         .add_service(StringServiceServer::new(MyStringService::default()))
         .add_service(AccountServiceServer::new(AccountServiceImpl::new(db)))
         .serve(addr)

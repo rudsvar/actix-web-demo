@@ -48,6 +48,20 @@ impl ResponseError for AppError {
     }
 }
 
+impl From<AppError> for Status {
+    fn from(e: AppError) -> Self {
+        let message = format!("{}", e);
+        match e {
+            AppError::BusinessError(_) => Status::failed_precondition(message),
+            AppError::DbError(e) => e.into(),
+            AppError::ConfigError(_) => Status::internal(message),
+            AppError::AuthenticationError => Status::unauthenticated(message),
+            AppError::AuthorizationError => Status::permission_denied(message),
+            AppError::CustomError(_, _) => Status::internal(message),
+        }
+    }
+}
+
 /// A logical error for when the operation could not be performed.
 #[derive(Debug, Error)]
 pub enum ServiceError {

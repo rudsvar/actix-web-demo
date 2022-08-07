@@ -13,6 +13,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use tonic::{Request, Status};
 
 /// The data stored in the jwt
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -147,5 +148,36 @@ pub async fn validate_jwt(
         Ok(req)
     } else {
         Err((AppError::AuthenticationError.into(), req))
+    }
+}
+
+/// Check that the incoming gRPC request contains a valid jwt.
+pub fn jwt_interceptor(mut request: Request<()>) -> Result<Request<()>, Status> {
+    tracing::debug!("Checking JWT");
+
+    // Get authorization header
+    let token = request
+        .metadata()
+        .get("authorization")
+        .ok_or_else(|| Status::unauthenticated("missing authorization header"))?;
+
+    // Convert header to str
+    let token = token
+        .to_str()
+        .map_err(|e| Status::invalid_argument(format!("invalid authorization header: {}", e)))?;
+
+    // Split into token type and header
+    let (token_type, token) = token
+        .split_once(' ')
+        .ok_or_else(|| Status::invalid_argument("invalid authorization header format"))?;
+
+    match token_type {
+        "Bearer" => {
+            let claims = decode_jwt(token).map_err(|_| Status::unauthenticated("invalid jwt"))?;
+            tracing::debug!("Found claims: {:?}", claims);
+            request.extensions_mut().insert(claims);
+            Ok(request)
+        }
+        _ => Err(Status::unauthenticated("unknown token type")),
     }
 }
