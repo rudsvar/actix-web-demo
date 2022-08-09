@@ -173,7 +173,7 @@ pub fn jwt_interceptor(mut request: Request<()>) -> Result<Request<()>, Status> 
 
     match token_type {
         "Bearer" => {
-            let claims = decode_jwt(token).map_err(|_| Status::unauthenticated("invalid jwt"))?;
+            let claims = decode_jwt(token)?;
             tracing::debug!("Found claims: {:?}", claims);
             request.extensions_mut().insert(claims);
             Ok(request)
