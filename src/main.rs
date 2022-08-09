@@ -1,9 +1,9 @@
-use actix_web_demo::{configuration::load_configuration, DbPool};
+use actix_web_demo::{infra::configuration::load_configuration, DbPool};
 use std::net::TcpListener;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    actix_web_demo::logging::init_logging();
+    actix_web_demo::infra::logging::init_logging();
 
     let configuration = load_configuration().expect("could not read configuration");
 

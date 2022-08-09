@@ -1,6 +1,6 @@
 //! Middleware for appending headers to responses.
 
-use crate::security::signature::{self, Headers, SignatureHeader};
+use crate::infra::security::signature::{self, Headers, SignatureHeader};
 use actix_http::{body::BoxBody, h1::Payload, HttpMessage};
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},

@@ -7,20 +7,21 @@
 
 //! A demo web service implemented with actix web.
 
+use crate::graphql::schema::create_schema;
 use crate::grpc::account::AccountServiceImpl;
 use crate::grpc::string::MyStringService;
-use crate::middleware::{DigestFilter, SignatureFilter};
-use crate::security::jwt::{jwt_interceptor, Role};
+use crate::infra::middleware::{DigestFilter, SignatureFilter};
+use crate::infra::security::jwt::{jwt_interceptor, Role};
+use crate::infra::{configuration, middleware, security};
 use actix_cors::Cors;
 use actix_web::web::{Json, Payload};
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web::{Error, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use error::AppError;
-use graphql::schema::create_schema;
 use grpc::account::generated::account_service_server::AccountServiceServer;
 use grpc::string::generated::string_service_server::StringServiceServer;
+use infra::error::AppError;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
 use paperclip::v2::models::{DefaultApiRaw, Info, SecurityScheme};
@@ -38,17 +39,12 @@ use tonic::service::interceptor;
 use tonic::transport::{Identity, ServerTlsConfig};
 use tracing_actix_web::TracingLogger;
 
-pub mod configuration;
-pub mod repository;
-pub mod error;
 pub mod graphql;
 pub mod grpc;
-pub mod logging;
-pub mod middleware;
+pub mod infra;
 pub mod model;
+pub mod repository;
 pub mod rest;
-pub mod security;
-pub mod validation;
 
 /// A common response type for services.
 pub type AppResult<T> = Result<T, AppError>;

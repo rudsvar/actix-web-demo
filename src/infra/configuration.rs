@@ -1,6 +1,6 @@
 //! Structs and functions for reading application configuration from a file.
 
-use crate::error::AppError;
+use super::error::AppError;
 
 /// Application settings.
 #[derive(Debug, serde:: Deserialize)]

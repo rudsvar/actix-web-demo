@@ -15,7 +15,7 @@ pub struct ValidationErrors(validator::ValidationErrors);
 /// Valid objects can be constructed with [`Validated::new`].
 ///
 /// ```
-/// # use actix_web_demo::validation::Validated;
+/// # use actix_web_demo::infra::validation::Validated;
 /// # use validator::Validate;
 /// #
 /// #[derive(Validate)]
@@ -34,7 +34,7 @@ pub struct ValidationErrors(validator::ValidationErrors);
 /// Invalid objects will be stopped by the constructor.
 ///
 /// ```
-/// # use actix_web_demo::validation::Validated;
+/// # use actix_web_demo::infra::validation::Validated;
 /// # use validator::Validate;
 /// #
 /// #[derive(Validate)]
@@ -89,7 +89,7 @@ impl<'de, T: Deserialize<'de> + Validate> Deserialize<'de> for Validated<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::validation::Validated;
+    use crate::infra::validation::Validated;
     use serde::Deserialize;
     use validator::Validate;
 

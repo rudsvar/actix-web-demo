@@ -1,10 +1,12 @@
 //! An API for creating and modifying accounts.
 
-use crate::error::{AppError, ServiceError};
-use crate::model::account_model::{Deposit, NewAccount, Withdrawal};
 use crate::security::jwt::{Claims, Role};
+use crate::{
+    infra::error::{AppError, DbError, ServiceError},
+    model::account_model::{Deposit, NewAccount, Withdrawal},
+    DbPool,
+};
 use crate::{repository::account_repository, AppResult};
-use crate::{error::DbError, DbPool};
 use actix_web::{web, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 

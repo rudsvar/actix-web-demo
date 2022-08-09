@@ -1,6 +1,7 @@
 use actix_web_demo::{
-    configuration::{load_configuration, DatabaseSettings},
-    logging, DbPool,
+    infra::configuration::{load_configuration, DatabaseSettings},
+    infra::logging,
+    DbPool,
 };
 use once_cell::sync::Lazy;
 use sqlx::Executor;

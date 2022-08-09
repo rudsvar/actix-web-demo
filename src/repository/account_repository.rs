@@ -1,7 +1,7 @@
 //! Utilities for interacting with the account table.
 
 use crate::{
-    error::DbError,
+    infra::error::DbError,
     model::account_model::{Account, NewAccount},
     Tx,
 };

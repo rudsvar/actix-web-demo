@@ -277,7 +277,7 @@ pub fn verify(
 ///
 /// # Examples
 /// ```
-/// # use actix_web_demo::security::signature::Headers;
+/// # use actix_web_demo::infra::security::signature::Headers;
 ///
 /// let mut headers = Headers::new();
 /// headers.add("(request-target)", "get /foo");

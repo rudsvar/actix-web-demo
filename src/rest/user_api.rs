@@ -1,9 +1,9 @@
 //! Routes for user management.
 
-use crate::repository::user_repository;
 use crate::model::user_model::NewUser;
+use crate::repository::user_repository;
 use crate::security::jwt::{Claims, Role};
-use crate::{error::AppError, DbPool};
+use crate::{infra::error::AppError, DbPool};
 use actix_web::{
     web::{self, Data, Json, Path, ReqData},
     HttpResponse,

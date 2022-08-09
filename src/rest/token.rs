@@ -1,7 +1,7 @@
 //! A service that can receive user information and validate it.
 
 use crate::{
-    error::AppError,
+    infra::error::AppError,
     security::jwt::{decode_jwt, encode_jwt},
     AppResult, DbPool,
 };

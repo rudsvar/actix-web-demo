@@ -5,7 +5,6 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::{repository::user_repository, error::AppError, DbPool};
 use actix_http::{HttpMessage, StatusCode};
 use actix_web::{dev::ServiceRequest, Error};
 use actix_web_grants::permissions::AttachPermissions;
@@ -14,6 +13,8 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use tonic::{Request, Status};
+
+use crate::{infra::error::AppError, repository::user_repository, DbPool};
 
 /// The data stored in the jwt
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -133,7 +134,7 @@ pub fn decode_jwt(token: &str) -> Result<Claims, AppError> {
 ///
 /// ```
 /// # use actix_web_httpauth::middleware::HttpAuthentication;
-/// # use actix_web_demo::security::jwt::validate_jwt;
+/// # use actix_web_demo::infra::security::jwt::validate_jwt;
 /// let auth = HttpAuthentication::bearer(validate_jwt);
 /// ```
 pub async fn validate_jwt(

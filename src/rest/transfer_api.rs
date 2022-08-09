@@ -1,9 +1,9 @@
 //! An API for transferring money between accounts.
 
 use crate::{
-    repository::{account_repository, transfer_repository},
-    error::{DbError, ServiceError},
+    infra::error::{DbError, ServiceError},
     model::transfer_model::NewTransfer,
+    repository::{account_repository, transfer_repository},
     security::jwt::{Claims, Role},
     AppResult, DbPool,
 };

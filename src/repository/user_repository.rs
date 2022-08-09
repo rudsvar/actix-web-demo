@@ -1,9 +1,8 @@
 //! Functions for storing and retrieving subscriptions from a database.
 
 use crate::{
-    error::DbError,
+    infra::{error::DbError, security::jwt::Role},
     model::user_model::{HashedPassword, NewUser, User},
-    security::jwt::Role,
 };
 use sqlx::PgExecutor;
 

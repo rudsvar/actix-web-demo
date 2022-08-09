@@ -1,6 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::{header::HttpDate, StatusCode};
-use actix_web_demo::security::signature::{self, Algorithm, Headers, SignatureHeader};
+use actix_web_demo::infra::security::signature::{self, Algorithm, Headers, SignatureHeader};
 use std::time::SystemTime;
 
 #[actix_web::test]

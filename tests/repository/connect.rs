@@ -1,4 +1,4 @@
-use actix_web_demo::configuration::load_configuration;
+use actix_web_demo::infra::configuration::load_configuration;
 use sqlx::{Connection, PgConnection};
 
 #[actix_web::test]
