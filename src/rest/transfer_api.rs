@@ -1,12 +1,10 @@
 //! An API for transferring money between accounts.
 
 use crate::{
+    repository::{account_repository, transfer_repository},
     error::{DbError, ServiceError},
+    model::transfer_model::NewTransfer,
     security::jwt::{Claims, Role},
-    service::{
-        account::account_repository,
-        transfer::{transfer_model::NewTransfer, transfer_repository},
-    },
     AppResult, DbPool,
 };
 use actix_web::{web, HttpResponse};

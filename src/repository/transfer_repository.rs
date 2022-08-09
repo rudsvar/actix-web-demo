@@ -1,9 +1,10 @@
 //! Utilities for interacting with the account table.
 
-use crate::error::DbError;
+use crate::{
+    error::DbError,
+    model::transfer_model::{NewTransfer, Transfer},
+};
 use sqlx::{Postgres, Transaction};
-
-use super::transfer_model::{NewTransfer, Transfer};
 
 /// Performs a transfer between two accounts.
 pub async fn insert_transfer(

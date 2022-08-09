@@ -1,10 +1,9 @@
 //! Functions for storing and retrieving subscriptions from a database.
 
-use super::user_model::NewUser;
 use crate::{
     error::DbError,
+    model::user_model::{HashedPassword, NewUser, User},
     security::jwt::Role,
-    service::user::user_model::{HashedPassword, User},
 };
 use sqlx::PgExecutor;
 

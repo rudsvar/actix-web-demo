@@ -1,6 +1,6 @@
-use crate::common::spawn_test_app;
+use crate::{common::spawn_test_app, rest};
 use actix_http::StatusCode;
-use actix_web_demo::service::account::account_model::{Account, Deposit, NewAccount, Withdrawal};
+use actix_web_demo::model::account_model::{Account, Deposit, NewAccount, Withdrawal};
 
 #[actix_web::test]
 async fn post_account_gives_201() {
@@ -10,7 +10,7 @@ async fn post_account_gives_201() {
     let new_account = NewAccount::new("my_account".to_string());
 
     // Act
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
     let response = client
         .post(format!("{}/api/users/1/accounts", app.address()))
         .bearer_auth(user_token)
@@ -33,7 +33,7 @@ async fn post_account_gives_201() {
 async fn get_account_gives_200() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     // Read response
     let response = client
@@ -51,7 +51,7 @@ async fn get_account_gives_200() {
 #[actix_web::test]
 async fn get_missing_account_gives_404() {
     let app = spawn_test_app().await;
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     // Populate db with test data
     let client = reqwest::Client::new();
@@ -69,7 +69,7 @@ async fn get_missing_account_gives_404() {
 async fn deposit_increases_balance() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
@@ -119,7 +119,7 @@ async fn deposit_increases_balance() {
 async fn withdraw_decreases_balance() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     // Check old account status
     let old_account: Account = client
@@ -167,7 +167,7 @@ async fn withdraw_decreases_balance() {
 async fn withdrawing_too_much_fails() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     // Make a withdrawal
     let withdrawal_amount = 500;
@@ -191,7 +191,7 @@ async fn user_cannot_access_other_account() {
     let client = reqwest::Client::new();
 
     // Get user's account as user
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
     let response = client
         .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&user_token)
@@ -210,7 +210,7 @@ async fn user_cannot_access_other_account() {
     assert_eq!(StatusCode::FORBIDDEN, response.status());
 
     // Get user's account as admin
-    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let admin_token = rest::authenticate(&app, "admin", "admin").await;
     let response = client
         .get(format!("{}/api/users/1/accounts/1", app.address()))
         .bearer_auth(&admin_token)
@@ -220,7 +220,7 @@ async fn user_cannot_access_other_account() {
     assert_eq!(StatusCode::OK, response.status());
 
     // Get admin's account as admin
-    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let admin_token = rest::authenticate(&app, "admin", "admin").await;
     let response = client
         .get(format!("{}/api/users/2/accounts/3", app.address()))
         .bearer_auth(admin_token)

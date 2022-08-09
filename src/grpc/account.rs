@@ -1,8 +1,8 @@
 //! Account service.
 
+use crate::repository::account_repository;
 use crate::error::DbError;
-use crate::service::account::account_model::Account;
-use crate::service::account::account_repository;
+use crate::model::account_model::Account;
 use crate::DbPool;
 use generated::account_service_server::AccountService;
 use generated::{AccountRequest, AccountResponse};

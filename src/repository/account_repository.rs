@@ -1,7 +1,10 @@
 //! Utilities for interacting with the account table.
 
-use super::account_model::{Account, NewAccount};
-use crate::{error::DbError, Tx};
+use crate::{
+    error::DbError,
+    model::account_model::{Account, NewAccount},
+    Tx,
+};
 
 /// Insert a new account into the account table.
 pub async fn insert_account(

@@ -1,14 +1,13 @@
+use crate::{common::spawn_test_app, rest};
 use actix_http::StatusCode;
-use actix_web_demo::service::user::user_model::{NewUser, User};
-
-use crate::common::spawn_test_app;
+use actix_web_demo::model::user_model::{NewUser, User};
 
 #[actix_web::test]
 async fn creating_user_adds_it_to_db() {
     let app = spawn_test_app().await;
     let db = app.db();
     let client = reqwest::Client::new();
-    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let admin_token = rest::authenticate(&app, "admin", "admin").await;
 
     let new_user = NewUser {
         name: "foo".to_string(),

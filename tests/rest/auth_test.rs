@@ -1,6 +1,6 @@
 use crate::common::spawn_test_app;
 use actix_http::StatusCode;
-use actix_web_demo::service::client_context::ClientContext;
+use actix_web_demo::rest::client_context::ClientContext;
 
 #[actix_web::test]
 async fn health_check_works() {

@@ -1,16 +1,17 @@
 use actix_http::StatusCode;
-use actix_web_demo::service::{
-    account::account_model::Account, transfer::transfer_model::NewTransfer,
-};
+use actix_web_demo::model::{account_model::Account, transfer_model::NewTransfer};
 use reqwest::Client;
 
-use crate::common::{spawn_test_app, TestApp};
+use crate::{
+    common::{spawn_test_app, TestApp},
+    rest,
+};
 
 #[actix_web::test]
 async fn user_can_transfer_between_own_accounts() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     let new_transfer = NewTransfer {
         from_account: 1,
@@ -47,8 +48,8 @@ async fn user_can_transfer_between_own_accounts() {
 async fn user_can_transfer_to_non_owned_account() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
-    let admin_token = super::authenticate(&app, "admin", "admin").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
+    let admin_token = rest::authenticate(&app, "admin", "admin").await;
 
     let new_transfer = NewTransfer {
         from_account: 1,
@@ -85,7 +86,7 @@ async fn user_can_transfer_to_non_owned_account() {
 async fn user_cannot_transfer_from_non_owned_account() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "user", "user").await;
+    let user_token = rest::authenticate(&app, "user", "user").await;
 
     let new_transfer = NewTransfer {
         from_account: 3,
@@ -107,7 +108,7 @@ async fn user_cannot_transfer_from_non_owned_account() {
 async fn admin_can_transfer_from_non_owned_account() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let user_token = super::authenticate(&app, "admin", "admin").await;
+    let user_token = rest::authenticate(&app, "admin", "admin").await;
 
     let new_transfer = NewTransfer {
         from_account: 1,

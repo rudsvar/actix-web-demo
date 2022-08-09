@@ -5,7 +5,7 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::{error::AppError, service::user::user_db, DbPool};
+use crate::{repository::user_repository, error::AppError, DbPool};
 use actix_http::{HttpMessage, StatusCode};
 use actix_web::{dev::ServiceRequest, Error};
 use actix_web_grants::permissions::AttachPermissions;
@@ -69,12 +69,12 @@ fn file_to_bytes(path: &str) -> Result<Vec<u8>, AppError> {
 /// Create a jwt for the provided user.
 pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
     // Authenticate user
-    let user_id = user_db::authenticate(conn, username, password)
+    let user_id = user_repository::authenticate(conn, username, password)
         .await?
         .ok_or(AppError::AuthenticationError)?;
 
     // Fetch user roles
-    let roles = user_db::fetch_roles(conn, username).await?;
+    let roles = user_repository::fetch_roles(conn, username).await?;
 
     let config = crate::configuration::load_configuration()?;
 

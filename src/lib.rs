@@ -24,12 +24,12 @@ use grpc::string::generated::string_service_server::StringServiceServer;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
 use paperclip::v2::models::{DefaultApiRaw, Info, SecurityScheme};
-use serde::{Deserialize, Serialize};
-use service::{
+use rest::{
     client_context::client_context,
     health_check::health,
     token::{request_token, verify_token},
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::io::{self};
 use std::net::{SocketAddr, TcpListener};
@@ -39,13 +39,15 @@ use tonic::transport::{Identity, ServerTlsConfig};
 use tracing_actix_web::TracingLogger;
 
 pub mod configuration;
+pub mod repository;
 pub mod error;
 pub mod graphql;
 pub mod grpc;
 pub mod logging;
 pub mod middleware;
+pub mod model;
+pub mod rest;
 pub mod security;
-pub mod service;
 pub mod validation;
 
 /// A common response type for services.
@@ -116,9 +118,9 @@ pub fn run_app(
             .service(
                 web::scope("/api")
                     .wrap(auth)
-                    .configure(service::account::account_api::account_config)
-                    .configure(service::user::user_api::user_config)
-                    .configure(service::transfer::transfer_api::transfer_config)
+                    .configure(rest::account_api::account_config)
+                    .configure(rest::user_api::user_config)
+                    .configure(rest::transfer_api::transfer_config)
                     // Secure endpoints
                     .route("/user", web::get().to(user))
                     .route("/admin", web::get().to(admin)),
