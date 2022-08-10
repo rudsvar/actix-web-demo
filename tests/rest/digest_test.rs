@@ -21,11 +21,18 @@ async fn request_with_digest_works() {
     headers.add("date", &date);
     headers.add("digest", &digest);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
-    let signature_header =
-        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
+    let signature_header = signature::signature_header(
+        "signing_public_key",
+        Algorithm::EcdsaSha256,
+        &headers,
+        private_key,
+    )
+    .unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -58,11 +65,18 @@ async fn request_with_wrong_digest_fails() {
     headers.add("date", &date);
     headers.add("digest", &not_digest_body);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
-    let signature_header =
-        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
+    let signature_header = signature::signature_header(
+        "signing_public_key",
+        Algorithm::EcdsaSha256,
+        &headers,
+        private_key,
+    )
+    .unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -88,9 +102,11 @@ async fn request_with_body_but_no_digest_fails() {
     headers.add("(request-target)", "get /signature");
     headers.add("date", &date);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
     let signature_header =
         signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 
@@ -122,9 +138,11 @@ async fn not_signing_digest_fails() {
     headers.add("(request-target)", "get /signature");
     headers.add("date", &date);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
     let signature_header =
         signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 

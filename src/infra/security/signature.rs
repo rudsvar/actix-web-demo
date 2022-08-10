@@ -345,19 +345,19 @@ mod tests {
     #[test]
     fn verify_signature_works() {
         let data = b"hello there";
-        let private_key = load_ec_private_key("./resources/test-signing-key.pem").unwrap();
+        let private_key = load_ec_private_key("./resources/signing_private_key.pem").unwrap();
         let signature = sign(data, private_key).unwrap();
-        let public_key = load_ec_public_key("./resources/test.pem").unwrap();
+        let public_key = load_ec_public_key("./resources/signing_public_key.pem").unwrap();
         assert_eq!(Ok(true), verify(data, &signature, public_key))
     }
 
     #[test]
     fn verify_signature_fails_with_modified_data() {
         let data = b"hello foo";
-        let private_key = load_ec_private_key("./resources/test-signing-key.pem").unwrap();
+        let private_key = load_ec_private_key("./resources/signing_private_key.pem").unwrap();
         let signature = sign(data, private_key).unwrap();
         let modified_data = b"hello bar";
-        let public_key = load_ec_public_key("./resources/test.pem").unwrap();
+        let public_key = load_ec_public_key("./resources/signing_public_key.pem").unwrap();
         assert_eq!(Ok(false), verify(modified_data, &signature, public_key))
     }
 

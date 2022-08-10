@@ -14,11 +14,18 @@ async fn signed_request_works() {
     headers.add("(request-target)", "get /signature");
     headers.add("date", &date);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
-    let signature_header =
-        signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
+    let signature_header = signature::signature_header(
+        "signing_public_key",
+        Algorithm::EcdsaSha256,
+        &headers,
+        private_key,
+    )
+    .unwrap();
 
     let response = client
         .get(format!("{}/signature", app.address()))
@@ -42,9 +49,11 @@ async fn edited_signed_request_fails() {
     headers.add("(request-target)", "get /not-signature");
     headers.add("date", &date);
 
-    let private_key =
-        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
-            .unwrap();
+    let private_key = signature::load_private_key(
+        "./resources/signing_private_key.pem",
+        &Algorithm::EcdsaSha256,
+    )
+    .unwrap();
     let signature_header =
         signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
 
@@ -71,7 +80,7 @@ async fn signed_with_wrong_key_fails() {
     headers.add("date", &date);
 
     let private_key = signature::load_private_key(
-        "./resources/wrong-test-signing-key.pem",
+        "./resources/signing_private_key_2.pem",
         &Algorithm::EcdsaSha256,
     )
     .unwrap();

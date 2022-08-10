@@ -28,9 +28,9 @@ pub struct ServerSettings {
 #[derive(Clone, Debug, serde:: Deserialize)]
 pub struct SecuritySettings {
     /// SSL certificate.
-    pub ssl_certificate: String,
+    pub tls_certificate: String,
     /// SSL private key.
-    pub ssl_private_key: String,
+    pub tls_private_key: String,
     /// JWT private key.
     pub jwt_private_key: String,
     /// JWT public key.

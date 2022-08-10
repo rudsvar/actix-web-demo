@@ -4,12 +4,12 @@ server:
   https_port: 8443
 
 security:
-  ssl_certificate: "resources/test-cert.pem"
-  ssl_private_key: "resources/test-key.pem"
-  signing_private_key: "resources/test-signing-key.pem"
-  signing_public_key: "resources/test.pem"
-  jwt_private_key: "resources/test-signing-key.pem"
-  jwt_public_key: "resources/test.pem"
+  tls_private_key: "resources/tls_private_key.pem"
+  tls_certificate: "resources/tls_certificate.pem"
+  signing_private_key: "resources/signing_private_key.pem"
+  signing_public_key: "resources/signing_public_key.pem"
+  jwt_private_key: "resources/signing_private_key.pem"
+  jwt_public_key: "resources/signing_public_key.pem"
   jwt_minutes_to_live: 60
 
 database:

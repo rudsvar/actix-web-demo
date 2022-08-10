@@ -60,10 +60,10 @@ pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> Result<(), tonic::transpo
     tracing::info!("Starting gRPC server on address {}", addr);
 
     let config = configuration::load_configuration().expect("failed to read configuration");
-    let cert = tokio::fs::read(config.security.ssl_certificate)
+    let cert = tokio::fs::read(config.security.tls_certificate)
         .await
         .expect("failed to read TLS cert");
-    let key = tokio::fs::read(config.security.ssl_private_key)
+    let key = tokio::fs::read(config.security.tls_private_key)
         .await
         .expect("failed to read TLS key");
     let identity = Identity::from_pem(cert, key);
@@ -191,10 +191,10 @@ async fn echo_pet(body: Json<Pet>) -> Result<Json<Pet>, Error> {
 fn ssl_builder() -> SslAcceptorBuilder {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     builder
-        .set_private_key_file("resources/test-key.pem", SslFiletype::PEM)
+        .set_private_key_file("resources/tls_private_key.pem", SslFiletype::PEM)
         .expect("failed to open/read test-key.pem");
     builder
-        .set_certificate_chain_file("resources/test-cert.pem")
+        .set_certificate_chain_file("resources/tls_certificate.pem")
         .expect("failed to open/read test-cert.pem");
     builder
 }
