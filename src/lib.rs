@@ -191,10 +191,10 @@ async fn echo_pet(body: Json<Pet>) -> Result<Json<Pet>, Error> {
 fn ssl_builder() -> SslAcceptorBuilder {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     builder
-        .set_private_key_file("test-key.pem", SslFiletype::PEM)
+        .set_private_key_file("resources/test-key.pem", SslFiletype::PEM)
         .expect("failed to open/read test-key.pem");
     builder
-        .set_certificate_chain_file("test-cert.pem")
+        .set_certificate_chain_file("resources/test-cert.pem")
         .expect("failed to open/read test-cert.pem");
     builder
 }

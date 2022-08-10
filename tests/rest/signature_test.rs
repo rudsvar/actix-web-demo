@@ -15,7 +15,7 @@ async fn signed_request_works() {
     headers.add("date", &date);
 
     let private_key =
-        signature::load_private_key("./tests/test-signing-key.pem", &Algorithm::EcdsaSha256)
+        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
             .unwrap();
     let signature_header =
         signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
@@ -43,7 +43,7 @@ async fn edited_signed_request_fails() {
     headers.add("date", &date);
 
     let private_key =
-        signature::load_private_key("./tests/test-signing-key.pem", &Algorithm::EcdsaSha256)
+        signature::load_private_key("./resources/test-signing-key.pem", &Algorithm::EcdsaSha256)
             .unwrap();
     let signature_header =
         signature::signature_header("test", Algorithm::EcdsaSha256, &headers, private_key).unwrap();
@@ -71,7 +71,7 @@ async fn signed_with_wrong_key_fails() {
     headers.add("date", &date);
 
     let private_key = signature::load_private_key(
-        "./tests/wrong-test-signing-key.pem",
+        "./resources/wrong-test-signing-key.pem",
         &Algorithm::EcdsaSha256,
     )
     .unwrap();

@@ -100,7 +100,7 @@ async fn validate_signature(req: &mut ServiceRequest) -> Result<(), HttpResponse
 
     // Load public key associated with the keyId
     let public_key = signature::load_public_key(
-        &format!("./key_repository/{}.pem", signature_header.key_id()),
+        &format!("./resources/{}.pem", signature_header.key_id()),
         signature_header.algorithm(),
     )
     .map_err(|_| {
