@@ -78,7 +78,7 @@ pub async fn spawn_test_app() -> TestApp {
 
     let configuration = load_configuration().expect("Failed to read configuration");
     let db = test_db(configuration.database).await;
-    let server = actix_web_demo::run_app(http_listener, https_listener, db.clone())
+    let server = actix_web_demo::run_actix(http_listener, https_listener, db.clone())
         .expect("Failed to bind address");
     let _ = tokio::spawn(server);
 

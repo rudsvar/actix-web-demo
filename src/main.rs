@@ -2,16 +2,16 @@ use actix_web_demo::{infra::configuration::load_configuration, DbPool};
 use std::net::TcpListener;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     actix_web_demo::infra::logging::init_logging();
 
-    let configuration = load_configuration().expect("could not read configuration");
+    let configuration = load_configuration()?;
 
     // Connect to db
     let connection_string = configuration.database.connection_string();
-    let db_pool = DbPool::connect_lazy(&connection_string).expect("could not connect to db");
+    let db_pool = DbPool::connect_lazy(&connection_string)?;
 
-    let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse().unwrap(), db_pool.clone());
+    let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse()?, db_pool.clone());
     tokio::spawn(grpc);
 
     // Create http listener
@@ -29,5 +29,7 @@ async fn main() -> std::io::Result<()> {
     let https_listener = TcpListener::bind(https_addr)?;
 
     // Start application
-    actix_web_demo::run_app(http_listener, https_listener, db_pool)?.await
+    actix_web_demo::run_actix(http_listener, https_listener, db_pool)?.await?;
+
+    Ok(())
 }

@@ -26,6 +26,7 @@ config = "0.13.1"
 uuid = { version = "1.0.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 thiserror = "1.0.30"
+anyhow = { version = "1.0.60", features = ["backtrace"] }
 futures = "0.3.19"
 juniper = "0.15.10"
 

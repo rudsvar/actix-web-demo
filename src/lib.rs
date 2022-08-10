@@ -19,6 +19,7 @@ use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web::{Error, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
+use anyhow::Context;
 use grpc::account::generated::account_service_server::AccountServiceServer;
 use grpc::string::generated::string_service_server::StringServiceServer;
 use infra::error::AppError;
@@ -32,7 +33,6 @@ use rest::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
-use std::io::{self};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
 use tonic::service::interceptor;
@@ -56,16 +56,12 @@ pub type DbPool = PgPool;
 pub type Tx = Transaction<'static, Postgres>;
 
 /// Starts the gRPC server.
-pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> Result<(), tonic::transport::Error> {
+pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> anyhow::Result<()> {
     tracing::info!("Starting gRPC server on address {}", addr);
 
-    let config = configuration::load_configuration().expect("failed to read configuration");
-    let cert = tokio::fs::read(config.security.tls_certificate)
-        .await
-        .expect("failed to read TLS cert");
-    let key = tokio::fs::read(config.security.tls_private_key)
-        .await
-        .expect("failed to read TLS key");
+    let config = configuration::load_configuration()?;
+    let cert = tokio::fs::read(config.security.tls_certificate).await?;
+    let key = tokio::fs::read(config.security.tls_private_key).await?;
     let identity = Identity::from_pem(cert, key);
 
     tonic::transport::Server::builder()
@@ -75,20 +71,21 @@ pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> Result<(), tonic::transpo
         .add_service(AccountServiceServer::new(AccountServiceImpl::new(db)))
         .serve(addr)
         .await
+        .map_err(Into::into)
 }
 
 /// Starts a [`Server`].
-pub fn run_app(
+pub fn run_actix(
     http_listener: TcpListener,
     https_listener: TcpListener,
     db_pool: DbPool,
-) -> io::Result<Server> {
+) -> anyhow::Result<Server> {
     tracing::info!(
         "Starting application on address {} and {}",
-        http_listener.local_addr().unwrap(),
-        https_listener.local_addr().unwrap()
+        http_listener.local_addr()?,
+        https_listener.local_addr()?
     );
-    let ssl_builder = ssl_builder();
+    let ssl_builder = ssl_builder()?;
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
@@ -188,13 +185,16 @@ async fn echo_pet(body: Json<Pet>) -> Result<Json<Pet>, Error> {
     Ok(body)
 }
 
-fn ssl_builder() -> SslAcceptorBuilder {
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+fn ssl_builder() -> anyhow::Result<SslAcceptorBuilder> {
+    let config = configuration::load_configuration()?;
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
+    let private_key = config.security.tls_private_key;
+    let certificate = config.security.tls_certificate;
     builder
-        .set_private_key_file("resources/tls_private_key.pem", SslFiletype::PEM)
-        .expect("failed to open/read test-key.pem");
+        .set_private_key_file(&private_key, SslFiletype::PEM)
+        .with_context(|| format!("can't find tls private key {}", private_key))?;
     builder
-        .set_certificate_chain_file("resources/tls_certificate.pem")
-        .expect("failed to open/read test-cert.pem");
-    builder
+        .set_certificate_chain_file(&certificate)
+        .with_context(|| format!("can't find tls certificate: {}", certificate))?;
+    Ok(builder)
 }
