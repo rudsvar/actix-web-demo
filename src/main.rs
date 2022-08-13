@@ -15,10 +15,8 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(grpc);
 
     // Create http listener
-    let http_addr = format!(
-        "{}:{}",
-        configuration.server.address, configuration.server.http_port
-    );
+    let port = std::env::var("PORT").unwrap_or_else(|_| configuration.server.http_port.to_string());
+    let http_addr = format!("{}:{}", configuration.server.address, port);
     let http_listener = TcpListener::bind(http_addr)?;
 
     // Create https listener
