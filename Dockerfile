@@ -1,14 +1,13 @@
-FROM rust:1.62.0 AS chef
-# We only pay the installation cost once,
-# it will be cached from the second build onwards
-RUN cargo install cargo-chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.63-buster AS chef
 WORKDIR /app
 
 FROM chef AS planner
 COPY . .
-RUN cargo chef prepare  --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
+RUN apt-get update
+RUN apt-get install -y protobuf-compiler
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -17,13 +16,12 @@ COPY . .
 ENV SQLX_OFFLINE true
 RUN cargo build --release --bin actix-web-demo
 
-# We do not need the Rust toolchain to run the binary!
-FROM chef AS runtime
+FROM debian:buster-slim AS runtime
 WORKDIR /app
 RUN apt-get update
-RUN apt-get upgrade
 RUN apt-get install -y libssl-dev
-COPY . .
-COPY --from=builder /app/target/release/actix-web-demo /usr/local/bin/actix-web-demo
-ENV RUST_LOG info
+COPY --from=builder /app/target/release/actix-web-demo /usr/local/bin
+COPY configuration.yaml configuration.yaml
+COPY resources resources
+ENV RUST_LOG info,tracing_actix_web=warn,actix_web_demo=debug,sqlx=off
 ENTRYPOINT ["/usr/local/bin/actix-web-demo"]
