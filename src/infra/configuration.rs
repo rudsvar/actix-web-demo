@@ -62,6 +62,7 @@ pub struct DatabaseSettings {
 pub fn load_configuration() -> Result<Settings, AppError> {
     let settings = config::Config::builder()
         .add_source(config::File::with_name("configuration"))
+        .add_source(config::Environment::with_prefix("app").separator("_"))
         .build()?
         .try_deserialize()?;
     Ok(settings)
