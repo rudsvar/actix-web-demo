@@ -1,5 +1,9 @@
-use actix_web_demo::{infra::configuration::load_configuration, DbPool};
-use std::net::TcpListener;
+use actix_web_demo::infra::configuration::load_configuration;
+use sqlx::{
+    pool::PoolOptions,
+    postgres::{PgConnectOptions, PgSslMode},
+};
+use std::{net::TcpListener, time::Duration};
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -7,16 +11,28 @@ async fn main() -> anyhow::Result<()> {
 
     let configuration = load_configuration()?;
 
-    // Connect to db
-    let connection_string = configuration.database.connection_string();
-    let db_pool = DbPool::connect_lazy(&connection_string)?;
+    // Configure database connection
+    let db_options = PgConnectOptions::default()
+        .host(&configuration.database.host)
+        .username(&configuration.database.username)
+        .password(&configuration.database.password)
+        .port(configuration.database.port)
+        .ssl_mode(PgSslMode::Prefer);
+    let db_pool = PoolOptions::default()
+        .acquire_timeout(Duration::from_secs(5))
+        .connect_lazy_with(db_options);
+
+    // Run migrations
+    sqlx::migrate!("./migrations").run(&db_pool).await?;
 
     let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse()?, db_pool.clone());
     tokio::spawn(grpc);
 
     // Create http listener
-    let port = std::env::var("PORT").unwrap_or_else(|_| configuration.server.http_port.to_string());
-    let http_addr = format!("{}:{}", configuration.server.address, port);
+    let http_addr = format!(
+        "{}:{}",
+        configuration.server.address, configuration.server.http_port
+    );
     let http_listener = TcpListener::bind(http_addr)?;
 
     // Create https listener
