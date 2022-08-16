@@ -1,0 +1,40 @@
+databases:
+- engine: PG
+  name: db
+  num_nodes: 1
+  size: db-s-dev-database
+  version: "12"
+name: actix-web-demo
+region: ams
+services:
+- envs:
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:J5gBPkbqxKyfP5ZglvYYvGw3LbSVKx+4:m8LsRMDG2G9RlREUoEgB/v3jT4x8GvePdMjXtApda/8RrA==]
+  - key: APP_DATABASE_HOST
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:jfhIQvemY8+h9fVmKAutC1CtZ0BCVgu+:Pbu1lRo6BS3h5suQ6+QQl1t1o3zv12gxZu9RiCSAt/NsZnzEYK3+lXffFxe0xSVHZaAOYVJ2Sd9qvTRfz2mMjsDTGtWoVmFv7msY6OLsC2SSZCSYIpxH4JP0zrCnPoxzFCmx]
+  - key: APP_DATABASE_PORT
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:7WkOJBeD1XjEOzOw71xcdDhzEOH1upVU:CUEasuEXgZGYm303yQcVElsBDKd/]
+  - key: APP_DATABASE_USERNAME
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:EnZ89Drtm248w+UNhSqcjw2KG5ix50bN:fQaRzXRZN2/sdMWwE84kNELq]
+  - key: APP_DATABASE_PASSWORD
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:wOy1zupi9BGLB8QrcYnA6b+cNCz4vaP2:cmSklQKaOzDj9qZ1b1TM4HToZg0tw6wUkSOtsFMdoD6xcf6f7WlMhQ==]
+  http_port: 8080
+  image:
+    registry_type: DOCR
+    repository: actix-web-demo
+    tag: latest
+  instance_count: 1
+  instance_size_slug: basic-xs
+  name: actix-web-demo
+  routes:
+  - path: /
