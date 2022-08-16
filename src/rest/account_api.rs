@@ -24,6 +24,7 @@ pub fn account_config(cfg: &mut web::ServiceConfig) {
     type = "Role",
     secure = "*user_id == claims.id() || claims.has_role(&Role::Admin)"
 )]
+#[tracing::instrument(skip_all)]
 pub async fn post_account(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
@@ -43,6 +44,7 @@ pub async fn post_account(
     type = "Role",
     secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
 )]
+#[tracing::instrument(skip_all)]
 pub async fn get_account(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
@@ -64,6 +66,7 @@ pub async fn get_account(
     type = "Role",
     secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
 )]
+#[tracing::instrument(skip_all)]
 pub async fn deposit(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,
@@ -83,6 +86,7 @@ pub async fn deposit(
     type = "Role",
     secure = "path_params.0 == claims.id() || claims.has_role(&Role::Admin)"
 )]
+#[tracing::instrument(skip_all)]
 pub async fn withdraw(
     db: web::Data<DbPool>,
     claims: web::ReqData<Claims>,

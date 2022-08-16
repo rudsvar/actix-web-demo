@@ -2,6 +2,7 @@ use actix_web_demo::infra::configuration::load_configuration;
 use sqlx::{
     pool::PoolOptions,
     postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
 };
 use std::{net::TcpListener, time::Duration};
 
@@ -12,12 +13,14 @@ async fn main() -> anyhow::Result<()> {
     let configuration = load_configuration()?;
 
     // Configure database connection
-    let db_options = PgConnectOptions::default()
+    let mut db_options = PgConnectOptions::default()
+        .application_name("actix-web-demo")
         .host(&configuration.database.host)
         .username(&configuration.database.username)
         .password(&configuration.database.password)
         .port(configuration.database.port)
         .ssl_mode(PgSslMode::Prefer);
+    db_options.log_statements(tracing::log::LevelFilter::Trace);
     let db_pool = PoolOptions::default()
         .acquire_timeout(Duration::from_secs(5))
         .connect_lazy_with(db_options);

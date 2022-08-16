@@ -7,8 +7,9 @@ use crate::{
 };
 
 /// Insert a new account into the account table.
+#[tracing::instrument(skip(tx), ret)]
 pub async fn insert_account(
-    e: &mut Tx,
+    tx: &mut Tx,
     user_id: i32,
     new_account: NewAccount,
 ) -> Result<Account, DbError> {
@@ -23,25 +24,27 @@ pub async fn insert_account(
         0i64,
         user_id,
     )
-    .fetch_one(e)
+    .fetch_one(tx)
     .await
     .map_err(DbError::from)
 }
 
 /// Fetch an account from the account table.
-pub async fn fetch_account(e: &mut Tx, user_id: i32, account_id: i32) -> Result<Account, DbError> {
+#[tracing::instrument(skip(tx), ret)]
+pub async fn fetch_account(tx: &mut Tx, user_id: i32, account_id: i32) -> Result<Account, DbError> {
     sqlx::query_as!(
         Account,
         r#"SELECT * FROM accounts WHERE owner_id = $1 AND id = $2"#,
         user_id,
         account_id
     )
-    .fetch_one(e)
+    .fetch_one(tx)
     .await
     .map_err(DbError::from)
 }
 
 /// Increase balance on an account.
+#[tracing::instrument(skip(tx), ret)]
 pub async fn deposit(tx: &mut Tx, account_id: i32, amount: u32) -> Result<(), DbError> {
     sqlx::query!(
         r#"
@@ -58,6 +61,7 @@ pub async fn deposit(tx: &mut Tx, account_id: i32, amount: u32) -> Result<(), Db
 }
 
 /// Decrease balance on an account.
+#[tracing::instrument(skip(tx), ret)]
 pub async fn withdraw(tx: &mut Tx, account_id: i32, withdrawal: u32) -> Result<Account, DbError> {
     let account = sqlx::query_as!(
         Account,
