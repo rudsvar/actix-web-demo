@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  REGISTRY: "registry.digitalocean.com/actix-web-demo"
+  REGISTRY: "registry.digitalocean.com/rudsvar"
   IMAGE_NAME: "actix-web-demo"
   APP_ID: "4bf4a8d2-4e78-4eff-af59-57cf4014c11f"
 
