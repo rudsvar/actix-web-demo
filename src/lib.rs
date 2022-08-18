@@ -19,11 +19,9 @@ use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web::{Error, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use anyhow::Context;
 use grpc::account::generated::account_service_server::AccountServiceServer;
 use grpc::string::generated::string_service_server::StringServiceServer;
 use infra::error::AppError;
-use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use paperclip::actix::{api_v2_operation, Apiv2Schema, OpenApiExt};
 use paperclip::v2::models::{DefaultApiRaw, Info, SecurityScheme};
 use rest::{
@@ -36,7 +34,6 @@ use sqlx::{PgPool, Postgres, Transaction};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
 use tonic::service::interceptor;
-use tonic::transport::{Identity, ServerTlsConfig};
 use tracing_actix_web::TracingLogger;
 
 pub mod graphql;
@@ -59,13 +56,7 @@ pub type Tx = Transaction<'static, Postgres>;
 pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> anyhow::Result<()> {
     tracing::info!("Starting gRPC server on address {}", addr);
 
-    let config = configuration::load_configuration()?;
-    let cert = tokio::fs::read(config.security.tls_certificate).await?;
-    let key = tokio::fs::read(config.security.tls_private_key).await?;
-    let identity = Identity::from_pem(cert, key);
-
     tonic::transport::Server::builder()
-        .tls_config(ServerTlsConfig::new().identity(identity))?
         .layer(interceptor(jwt_interceptor))
         .add_service(StringServiceServer::new(MyStringService::default()))
         .add_service(AccountServiceServer::new(AccountServiceImpl::new(db)))
@@ -85,7 +76,6 @@ pub fn run_actix(
         http_listener.local_addr()?,
         https_listener.local_addr()?
     );
-    let ssl_builder = ssl_builder()?;
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
@@ -135,7 +125,6 @@ pub fn run_actix(
             .build()
     })
     .listen(http_listener)?
-    .listen_openssl(https_listener, ssl_builder)?
     .run();
     Ok(server)
 }
@@ -183,18 +172,4 @@ struct Pet {
 #[api_v2_operation]
 async fn echo_pet(body: Json<Pet>) -> Result<Json<Pet>, Error> {
     Ok(body)
-}
-
-fn ssl_builder() -> anyhow::Result<SslAcceptorBuilder> {
-    let config = configuration::load_configuration()?;
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
-    let private_key = config.security.tls_private_key;
-    let certificate = config.security.tls_certificate;
-    builder
-        .set_private_key_file(&private_key, SslFiletype::PEM)
-        .with_context(|| format!("can't find tls private key {}", private_key))?;
-    builder
-        .set_certificate_chain_file(&certificate)
-        .with_context(|| format!("can't find tls certificate: {}", certificate))?;
-    Ok(builder)
 }
