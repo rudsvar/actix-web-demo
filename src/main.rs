@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations")
         .run(&db_pool)
         .await
-        .inspect_err(|e| tracing::error!("Failed to run migrations: {}", e));
+        .unwrap_or_else(|e| tracing::error!("Failed to run migrations: {}", e));
 
     let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse()?, db_pool.clone());
     tokio::spawn(grpc);
