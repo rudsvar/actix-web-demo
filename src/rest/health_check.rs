@@ -6,5 +6,5 @@ use actix_web::{HttpResponse, Responder};
 #[tracing::instrument]
 pub async fn health() -> impl Responder {
     tracing::info!("I'm fine!");
-    HttpResponse::Ok()
+    HttpResponse::Ok().finish()
 }
