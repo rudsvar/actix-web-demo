@@ -67,6 +67,7 @@ pub async fn fetch_all_users(conn: impl PgExecutor<'_>) -> Result<Vec<User>, DbE
 }
 
 /// Verify a password.
+#[tracing::instrument(skip_all, fields(username = username))]
 pub async fn authenticate(
     conn: impl PgExecutor<'_>,
     username: &str,
@@ -83,6 +84,7 @@ pub async fn authenticate(
 }
 
 /// Extract grants from the database.
+#[tracing::instrument(skip_all, fields(user_id = username))]
 pub async fn fetch_roles(conn: impl PgExecutor<'_>, username: &str) -> Result<Vec<Role>, DbError> {
     // Get roles from db
     let mut roles: Vec<Role> = sqlx::query!(

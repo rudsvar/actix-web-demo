@@ -4,10 +4,19 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 /// Initialize logging facilitites.
 pub fn init_logging() {
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name("actix-web-demo")
+        .install_simple()
+        .unwrap();
+    let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+
     let log_format = std::env::var("LOG_FORMAT").ok();
     let log_format = log_format.as_deref();
     let console_layer = console_subscriber::spawn();
-    let registry = tracing_subscriber::registry().with(console_layer);
+    let registry = tracing_subscriber::registry()
+        .with(opentelemetry.with_filter(EnvFilter::from_default_env()))
+        .with(console_layer);
+
     match log_format {
         Some("bunyan") => {
             let json_storage_layer = JsonStorageLayer;

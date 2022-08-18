@@ -9,6 +9,7 @@ use actix_web::{web::Data, HttpResponse};
 use actix_web_httpauth::extractors::{basic::BasicAuth, bearer::BearerAuth};
 
 #[actix_web::post("/token")]
+#[tracing::instrument(skip_all, fields(username = credentials.user_id().as_ref()))]
 pub async fn request_token(pool: Data<DbPool>, credentials: BasicAuth) -> AppResult<HttpResponse> {
     // Load user information
     let username = credentials.user_id();

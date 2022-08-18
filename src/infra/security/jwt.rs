@@ -68,6 +68,7 @@ fn file_to_bytes(path: &str) -> Result<Vec<u8>, AppError> {
 }
 
 /// Create a jwt for the provided user.
+#[tracing::instrument(skip_all, fields(username = username))]
 pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
     // Authenticate user
     let user_id = user_repository::authenticate(conn, username, password)

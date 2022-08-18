@@ -45,6 +45,13 @@ tracing-actix-web = "0.6.0"
 tracing-bunyan-formatter = "0.3.3"
 console-subscriber = "0.1.6"
 
+# OpenTelemetry
+tracing-opentelemetry = "0.17.4"
+opentelemetry-jaeger = "0.16.0"
+opentelemetry = { version = "0.17.0", default-features = false, features = [
+  "trace",
+] }
+
 # Security and validation
 bcrypt = "0.13.0"
 jsonwebtoken = "8.0.1"

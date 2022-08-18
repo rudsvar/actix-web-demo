@@ -59,6 +59,7 @@ pub struct DatabaseSettings {
 }
 
 /// Retrieve [`Settings`] from the default configuration file.
+#[tracing::instrument]
 pub fn load_configuration() -> Result<Settings, AppError> {
     let settings = config::Config::builder()
         .add_source(config::File::with_name("configuration"))
