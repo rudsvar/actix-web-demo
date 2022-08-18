@@ -26,7 +26,10 @@ async fn main() -> anyhow::Result<()> {
         .connect_lazy_with(db_options);
 
     // Run migrations
-    sqlx::migrate!("./migrations").run(&db_pool).await?;
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .inspect_err(|e| tracing::error!("Failed to run migrations: {}", e));
 
     let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse()?, db_pool.clone());
     tokio::spawn(grpc);
