@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   REGISTRY: "registry.digitalocean.com/rudsvar"
   IMAGE_NAME: "actix-web-demo"
-  APP_ID: "4bf4a8d2-4e78-4eff-af59-57cf4014c11f"
+  APP_ID: "74fe35d7-e848-4926-aebf-d51db819d404"
 
 jobs:
   test:
