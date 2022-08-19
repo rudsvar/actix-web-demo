@@ -6,7 +6,7 @@ use sqlx::{
 };
 use std::{net::TcpListener, time::Duration};
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     actix_web_demo::infra::logging::init_logging();
 
