@@ -12,10 +12,10 @@ pub fn init_logging() {
 
     let log_format = std::env::var("LOG_FORMAT").ok();
     let log_format = log_format.as_deref();
-    let console_layer = console_subscriber::spawn();
+    // let console_layer = console_subscriber::spawn();
     let registry = tracing_subscriber::registry()
-        .with(opentelemetry.with_filter(EnvFilter::from_default_env()))
-        .with(console_layer);
+        .with(opentelemetry.with_filter(EnvFilter::from_default_env()));
+    // .with(console_layer);
 
     match log_format {
         Some("bunyan") => {
