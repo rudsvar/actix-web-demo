@@ -1,20 +1,33 @@
 //! Structs and functions for reading application configuration from a file.
 
+use serde::Deserialize;
+
 use super::error::AppError;
 
 /// Application settings.
-#[derive(Debug, serde:: Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Settings {
+    /// Application settings.
+    pub application: ApplicationSettings,
     /// Server settings.
     pub server: ServerSettings,
     /// Security settings.
     pub security: SecuritySettings,
     /// Database settings.
     pub database: DatabaseSettings,
+    /// Logging settings.
+    pub logging: LoggingSettings,
+}
+
+/// Application settings.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ApplicationSettings {
+    /// Application name
+    pub name: String,
 }
 
 /// Server settings.
-#[derive(Clone, Debug, serde:: Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ServerSettings {
     /// Server address.
     pub address: String,
@@ -22,10 +35,14 @@ pub struct ServerSettings {
     pub http_port: u16,
     /// Server https port.
     pub https_port: u16,
+    /// Server http port.
+    pub grpc_address: String,
+    /// Server https port.
+    pub grpc_port: u16,
 }
 
 /// Security settings.
-#[derive(Clone, Debug, serde:: Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct SecuritySettings {
     /// SSL certificate.
     pub tls_certificate: String,
@@ -44,7 +61,7 @@ pub struct SecuritySettings {
 }
 
 /// Database settings.
-#[derive(Debug, serde:: Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct DatabaseSettings {
     /// The database username.
     pub username: String,
@@ -56,6 +73,31 @@ pub struct DatabaseSettings {
     pub host: String,
     /// The database name.
     pub database_name: String,
+}
+
+/// Logging formats.
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub enum LogFormat {
+    /// Human-readable text.
+    #[serde(rename = "text")]
+    Text,
+    /// Output as json.
+    #[serde(rename = "json")]
+    Json,
+    /// Output as the bunyan format.
+    #[serde(rename = "bunyan")]
+    Bunyan,
+}
+
+/// Logging settings.
+#[derive(Debug, Deserialize)]
+pub struct LoggingSettings {
+    /// Logging format.
+    pub format: LogFormat,
+    /// Whether to enable tokio console.
+    pub tokio_console: String,
+    /// Whether to enable opentelemetry.
+    pub opentelemetry: String,
 }
 
 /// Retrieve [`Settings`] from the default configuration file.

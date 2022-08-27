@@ -8,13 +8,13 @@ use std::{net::TcpListener, time::Duration};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    actix_web_demo::infra::logging::init_logging();
-
     let configuration = load_configuration()?;
+
+    actix_web_demo::infra::logging::init_logging(&configuration)?;
 
     // Configure database connection
     let mut db_options = PgConnectOptions::default()
-        .application_name("actix-web-demo")
+        .application_name(&configuration.application.name)
         .host(&configuration.database.host)
         .username(&configuration.database.username)
         .password(&configuration.database.password)
@@ -30,9 +30,6 @@ async fn main() -> anyhow::Result<()> {
         .run(&db_pool)
         .await
         .unwrap_or_else(|e| tracing::error!("Failed to run migrations: {}", e));
-
-    let grpc = actix_web_demo::run_grpc("0.0.0.0:3009".parse()?, db_pool.clone());
-    tokio::spawn(grpc);
 
     // Create http listener
     let http_addr = format!(

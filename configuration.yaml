@@ -1,7 +1,12 @@
+application:
+  name: actix-web-demo
+
 server:
   address: 0.0.0.0
   http_port: 8080
   https_port: 8443
+  grpc_address: 0.0.0.0
+  grpc_port: 3009
 
 security:
   tls_private_key: "resources/tls_private_key.pem"
@@ -18,3 +23,8 @@ database:
   username: "postgres"
   password: "password"
   database_name: "actix-web-demo"
+
+logging:
+  format: text
+  tokio_console: off
+  opentelemetry: off

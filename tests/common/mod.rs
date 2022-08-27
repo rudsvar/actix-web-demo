@@ -1,5 +1,5 @@
 use actix_web_demo::{
-    infra::configuration::{load_configuration, DatabaseSettings},
+    infra::configuration::{self, load_configuration, DatabaseSettings},
     infra::logging,
     DbPool,
 };
@@ -9,7 +9,8 @@ use std::net::TcpListener;
 use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
-    logging::init_logging();
+    let config = configuration::load_configuration().unwrap();
+    logging::init_logging(&config).unwrap();
 });
 
 pub struct TestApp {
