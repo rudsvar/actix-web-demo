@@ -31,6 +31,14 @@ async fn main() -> anyhow::Result<()> {
         .await
         .unwrap_or_else(|e| tracing::error!("Failed to run migrations: {}", e));
 
+    let grpc_addr = format!(
+        "{}:{}",
+        configuration.server.grpc_address, configuration.server.grpc_port
+    )
+    .parse()?;
+    let grpc = actix_web_demo::run_grpc(grpc_addr, db_pool.clone());
+    tokio::spawn(grpc);
+
     // Create http listener
     let http_addr = format!(
         "{}:{}",
