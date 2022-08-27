@@ -46,15 +46,8 @@ async fn main() -> anyhow::Result<()> {
     );
     let http_listener = TcpListener::bind(http_addr)?;
 
-    // Create https listener
-    let https_addr = format!(
-        "{}:{}",
-        configuration.server.address, configuration.server.https_port
-    );
-    let https_listener = TcpListener::bind(https_addr)?;
-
     // Start application
-    actix_web_demo::run_actix(http_listener, https_listener, db_pool)?.await?;
+    actix_web_demo::run_actix(http_listener, db_pool)?.await?;
 
     Ok(())
 }

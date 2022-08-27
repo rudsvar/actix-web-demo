@@ -77,22 +77,3 @@ async fn admin_can_access_user() {
     // Assert
     assert_eq!(StatusCode::OK, response.status());
 }
-
-#[actix_web::test]
-#[ignore = "does not work in CI"]
-async fn https_health_check_works() {
-    // Arrange
-    let app = spawn_test_app().await;
-    let client = reqwest::Client::new();
-
-    // Act
-    let response = client
-        .get(format!("{}/health", app.https_address()))
-        .send()
-        .await
-        .expect("failed to execute request");
-
-    // Assert
-    assert_eq!(StatusCode::OK, response.status());
-    assert_eq!(Some(0), response.content_length());
-}

@@ -54,7 +54,7 @@ pub type Tx = Transaction<'static, Postgres>;
 
 /// Starts the gRPC server.
 pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> anyhow::Result<()> {
-    tracing::info!("Starting gRPC server on address {}", addr);
+    tracing::info!("Starting tonic on address {}", addr);
 
     tonic::transport::Server::builder()
         .layer(interceptor(jwt_interceptor))
@@ -66,16 +66,8 @@ pub async fn run_grpc(addr: SocketAddr, db: DbPool) -> anyhow::Result<()> {
 }
 
 /// Starts a [`Server`].
-pub fn run_actix(
-    http_listener: TcpListener,
-    https_listener: TcpListener,
-    db_pool: DbPool,
-) -> anyhow::Result<Server> {
-    tracing::info!(
-        "Starting application on address {} and {}",
-        http_listener.local_addr()?,
-        https_listener.local_addr()?
-    );
+pub fn run_actix(http_listener: TcpListener, db_pool: DbPool) -> anyhow::Result<Server> {
+    tracing::info!("Starting actix on address {}", http_listener.local_addr()?,);
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
