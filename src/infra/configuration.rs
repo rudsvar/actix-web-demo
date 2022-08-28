@@ -90,14 +90,14 @@ pub enum LogFormat {
 }
 
 /// Logging settings.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize)]
 pub struct LoggingSettings {
     /// Logging format.
     pub format: LogFormat,
     /// Whether to enable tokio console.
-    pub tokio_console: String,
+    pub tokio_console: bool,
     /// Whether to enable opentelemetry.
-    pub opentelemetry: String,
+    pub opentelemetry: bool,
 }
 
 /// Retrieve [`Settings`] from the default configuration file.

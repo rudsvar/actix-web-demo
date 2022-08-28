@@ -1,7 +1,6 @@
 //! Logging utilities.
 
 use super::configuration::{LogFormat, Settings};
-use std::str::FromStr;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -10,16 +9,24 @@ pub fn init_logging(config: &Settings) -> anyhow::Result<()> {
     let registry = tracing_subscriber::registry();
 
     // Add opentelemetry_jaeger layer
-    let opentelemetry_filter = EnvFilter::from_str(&config.logging.opentelemetry)?;
-    let opentelemetry_tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name(&config.application.name)
-        .install_simple()?;
-    let opentelemetry = tracing_opentelemetry::layer().with_tracer(opentelemetry_tracer);
-    let registry = registry.with(opentelemetry.with_filter(opentelemetry_filter));
+    let opentelemetry = if config.logging.opentelemetry {
+        let opentelemetry_tracer = opentelemetry_jaeger::new_pipeline()
+            .with_service_name(&config.application.name)
+            .install_simple()?;
+        let opentelemetry = tracing_opentelemetry::layer().with_tracer(opentelemetry_tracer);
+        Some(opentelemetry)
+    } else {
+        None
+    };
+    let registry = registry.with(opentelemetry);
 
     // Add tokio-console tracing
-    let console_layer_filter = EnvFilter::from_str(&config.logging.tokio_console)?;
-    let console_layer = console_subscriber::spawn().with_filter(console_layer_filter);
+    let console_layer = if config.logging.tokio_console {
+        let console_layer = console_subscriber::spawn();
+        Some(console_layer)
+    } else {
+        None
+    };
     let registry = registry.with(console_layer);
 
     match config.logging.format {

@@ -26,5 +26,5 @@ database:
 
 logging:
   format: text
-  tokio_console: off
-  opentelemetry: off
+  tokio_console: false
+  opentelemetry: false
