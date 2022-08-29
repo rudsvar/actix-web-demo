@@ -62,6 +62,13 @@ impl From<AppError> for Status {
     }
 }
 
+impl axum::response::IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        let message = format!("{}", self);
+        (self.status_code(), message).into_response()
+    }
+}
+
 /// A logical error for when the operation could not be performed.
 #[derive(Debug, Error)]
 pub enum ServiceError {
@@ -75,6 +82,13 @@ impl ResponseError for ServiceError {
         match self {
             ServiceError::ValidationError(_) => StatusCode::BAD_REQUEST,
         }
+    }
+}
+
+impl axum::response::IntoResponse for ServiceError {
+    fn into_response(self) -> axum::response::Response {
+        let message = format!("{}", self);
+        (self.status_code(), message).into_response()
     }
 }
 
@@ -139,5 +153,12 @@ impl From<DbError> for Status {
             DbError::Conflict => Status::already_exists(message),
             _ => Status::internal(message),
         }
+    }
+}
+
+impl axum::response::IntoResponse for DbError {
+    fn into_response(self) -> axum::response::Response {
+        let message = format!("{}", self);
+        (self.status_code(), message).into_response()
     }
 }

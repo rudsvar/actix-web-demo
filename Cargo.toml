@@ -15,6 +15,7 @@ actix-web-grants = "3.0.0"
 actix-web-lab = "0.17.0"
 actix-cors = "0.6.1"
 paperclip = { version = "0.7.0", features = ["actix4", "swagger-ui"] }
+axum = "0.5.15"
 
 # Tools
 itertools = "0.10.3"
@@ -62,6 +63,8 @@ openssl = "0.10.41"
 # gRPC
 tonic = { version = "0.8.0", features = ["tls"] }
 prost = "0.11.0"
+hyper = "0.14.20"
+http = "0.2.8"
 
 [dependencies.sqlx]
 version = "0.6.1"

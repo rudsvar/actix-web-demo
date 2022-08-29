@@ -121,6 +121,18 @@ pub fn run_actix(http_listener: TcpListener, db_pool: DbPool) -> anyhow::Result<
     Ok(server)
 }
 
+/// Starts the axum server.
+pub async fn run_axum(addr: SocketAddr, db_pool: DbPool) -> Result<(), hyper::Error> {
+    let svc = axum::Router::new()
+        .route("/health", axum::routing::get(rest::health_check::health2))
+        .route("/token", axum::routing::post(rest::token::request_token2))
+        .route("/verify", axum::routing::get(rest::token::verify_token2))
+        .layer(axum::Extension(db_pool));
+    axum::Server::bind(&addr)
+        .serve(svc.into_make_service())
+        .await
+}
+
 /// Common configuration for entire API.
 fn openapi_spec() -> DefaultApiRaw {
     let mut spec = DefaultApiRaw {

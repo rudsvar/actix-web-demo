@@ -39,6 +39,11 @@ async fn main() -> anyhow::Result<()> {
     let grpc = actix_web_demo::run_grpc(grpc_addr, db_pool.clone());
     tokio::spawn(grpc);
 
+    tokio::spawn(actix_web_demo::run_axum(
+        "0.0.0.0:8081".parse()?,
+        db_pool.clone(),
+    ));
+
     // Create http listener
     let http_addr = format!(
         "{}:{}",
@@ -47,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let http_listener = TcpListener::bind(http_addr)?;
 
     // Start application
-    actix_web_demo::run_actix(http_listener, db_pool)?.await?;
+    actix_web_demo::run_actix(http_listener, db_pool.clone())?.await?;
 
     Ok(())
 }
