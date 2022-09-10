@@ -38,8 +38,6 @@ impl<S> Service<ServiceRequest> for PrincipalInitService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>>,
     S: 'static,
-    S::Future: 'static,
-    S::Error: 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -71,7 +69,6 @@ impl<S> Transform<S, ServiceRequest> for PrincipalInit
 where
     S: Service<ServiceRequest, Response = ServiceResponse<BoxBody>, Error = actix_web::Error>,
     S: 'static,
-    S::Future: 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
