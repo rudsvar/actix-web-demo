@@ -65,6 +65,7 @@ tonic = { version = "0.8.0", features = ["tls"] }
 prost = "0.11.0"
 hyper = "0.14.20"
 http = "0.2.8"
+derive_builder = "0.11.2"
 
 [dependencies.sqlx]
 version = "0.6.1"

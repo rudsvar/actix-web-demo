@@ -30,7 +30,7 @@ pub async fn insert_account(
 }
 
 /// Fetch an account from the account table.
-#[tracing::instrument(skip(tx), ret)]
+#[tracing::instrument(skip(tx), fields(audit, entity_id = account_id), ret)]
 pub async fn fetch_account(tx: &mut Tx, user_id: i32, account_id: i32) -> Result<Account, DbError> {
     sqlx::query_as!(
         Account,

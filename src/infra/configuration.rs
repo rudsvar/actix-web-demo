@@ -5,7 +5,7 @@ use serde::Deserialize;
 use super::error::AppError;
 
 /// Application settings.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Settings {
     /// Application settings.
     pub application: ApplicationSettings,
@@ -61,7 +61,7 @@ pub struct SecuritySettings {
 }
 
 /// Database settings.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseSettings {
     /// The database username.
     pub username: String,

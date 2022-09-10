@@ -1,11 +1,16 @@
 //! Logging utilities.
 
-use super::configuration::{LogFormat, Settings};
+use crate::{repository::audit_log_repository, DbPool};
+
+use super::{
+    audit_log::AuditLayer,
+    configuration::{LogFormat, Settings},
+};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 /// Initialize logging facilitites.
-pub fn init_logging(config: &Settings) -> anyhow::Result<()> {
+pub async fn init_logging(config: &Settings, pool: DbPool) -> anyhow::Result<()> {
     let registry = tracing_subscriber::registry();
 
     // Add opentelemetry_jaeger layer
@@ -28,6 +33,20 @@ pub fn init_logging(config: &Settings) -> anyhow::Result<()> {
         None
     };
     let registry = registry.with(console_layer);
+
+    // Set up audit log layer and event listener
+    let (tx, mut rc) = tokio::sync::mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        while let Some(msg) = rc.recv().await {
+            let mut conn = pool.begin().await.unwrap();
+            audit_log_repository::store_audit_event(&mut conn, &msg)
+                .await
+                .unwrap();
+            conn.commit().await.unwrap();
+        }
+    });
+    let audit_layer = AuditLayer::new(tx);
+    let registry = registry.with(audit_layer);
 
     match config.logging.format {
         LogFormat::Bunyan => {

@@ -10,20 +10,21 @@ use std::{net::TcpListener, time::Duration};
 async fn main() -> anyhow::Result<()> {
     let configuration = load_configuration()?;
 
-    actix_web_demo::infra::logging::init_logging(&configuration)?;
-
     // Configure database connection
     let mut db_options = PgConnectOptions::default()
         .application_name(&configuration.application.name)
         .host(&configuration.database.host)
         .username(&configuration.database.username)
         .password(&configuration.database.password)
+        .database(&configuration.database.database_name)
         .port(configuration.database.port)
         .ssl_mode(PgSslMode::Prefer);
-    db_options.log_statements(tracing::log::LevelFilter::Trace);
+    db_options.log_statements(tracing::log::LevelFilter::Debug);
     let db_pool = PoolOptions::default()
         .acquire_timeout(Duration::from_secs(5))
         .connect_lazy_with(db_options);
+
+    actix_web_demo::infra::logging::init_logging(&configuration, db_pool.clone()).await?;
 
     // Run migrations
     sqlx::migrate!("./migrations")

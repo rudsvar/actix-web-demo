@@ -1,5 +1,6 @@
 //! Code for setting up infrastructure, such as logging and security.
 
+pub mod audit_log;
 pub mod configuration;
 pub mod error;
 pub mod logging;

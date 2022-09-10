@@ -1,17 +1,11 @@
 use actix_web_demo::{
-    infra::configuration::{self, load_configuration, DatabaseSettings},
+    infra::configuration::{load_configuration, DatabaseSettings},
     infra::logging,
     DbPool,
 };
-use once_cell::sync::Lazy;
 use sqlx::Executor;
 use std::net::TcpListener;
 use uuid::Uuid;
-
-static TRACING: Lazy<()> = Lazy::new(|| {
-    let config = configuration::load_configuration().unwrap();
-    logging::init_logging(&config).unwrap();
-});
 
 pub struct TestApp {
     address: String,
@@ -62,8 +56,6 @@ pub async fn test_db(mut database_settings: DatabaseSettings) -> DbPool {
 
 // Spawn an application used for testing
 pub async fn spawn_test_app() -> TestApp {
-    Lazy::force(&TRACING);
-
     // Create http listener
     let http_listener = TcpListener::bind("127.0.0.1:0").unwrap();
 
@@ -71,7 +63,10 @@ pub async fn spawn_test_app() -> TestApp {
     let address = format!("http://{}", http_listener.local_addr().unwrap());
 
     let configuration = load_configuration().expect("Failed to read configuration");
-    let db = test_db(configuration.database).await;
+    let db = test_db(configuration.database.clone()).await;
+
+    let _ = logging::init_logging(&configuration, db.clone()).await;
+
     let server =
         actix_web_demo::run_actix(http_listener, db.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);

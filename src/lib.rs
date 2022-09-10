@@ -92,6 +92,7 @@ pub fn run_actix(http_listener: TcpListener, db_pool: DbPool) -> anyhow::Result<
             // Api
             .service(
                 web::scope("/api")
+                    .wrap(middleware::PrincipalInit)
                     .wrap(auth)
                     .configure(rest::account_api::account_config)
                     .configure(rest::user_api::user_config)
