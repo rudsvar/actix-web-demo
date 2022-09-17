@@ -18,7 +18,6 @@ use actix_web::web::{Json, Payload};
 use actix_web::{dev::Server, web, App, HttpServer};
 use actix_web::{Error, HttpResponse};
 use actix_web_grants::proc_macro::has_roles;
-use actix_web_httpauth::middleware::HttpAuthentication;
 use grpc::account::generated::account_service_server::AccountServiceServer;
 use grpc::string::generated::string_service_server::StringServiceServer;
 use infra::error::AppError;
@@ -71,12 +70,13 @@ pub fn run_actix(http_listener: TcpListener, db_pool: DbPool) -> anyhow::Result<
     let pool = web::Data::new(db_pool.clone());
     let schema = Arc::new(create_schema(db_pool));
     let server = HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(security::jwt::validate_jwt);
         App::new()
             // Database pool
             .app_data(pool.clone())
+            // Set default content type
+            .wrap(middleware::HeaderSetter::new())
             // Middleware to apply to all requests
-            .wrap(middleware::RequestWrapper)
+            .wrap(middleware::Authenticator::new())
             .wrap(TracingLogger::default())
             // GraphQL
             .app_data(web::Data::from(schema.clone()))
@@ -92,8 +92,8 @@ pub fn run_actix(http_listener: TcpListener, db_pool: DbPool) -> anyhow::Result<
             // Api
             .service(
                 web::scope("/api")
-                    .wrap(middleware::PrincipalInit)
-                    .wrap(auth)
+                    .wrap(middleware::AuthenticationFilter::new())
+                    .wrap(middleware::RequestLogger::new())
                     .configure(rest::account_api::account_config)
                     .configure(rest::user_api::user_config)
                     .configure(rest::transfer_api::transfer_config)

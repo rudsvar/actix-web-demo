@@ -192,12 +192,13 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for AuditLayer {
             audit_data.output = ret_data.value;
 
             // Send event to handler
+            // TODO: Make sure receiver doesn't close too early
             self.sender
                 .send(AuditLogEntry {
                     principal_data: subject_data.clone(),
                     audit_data: audit_data.clone(),
                 })
-                .expect("failed to audit")
+                .unwrap_or_else(|e| tracing::warn!("Lost audit log entry: {}", e));
         }
     }
 }

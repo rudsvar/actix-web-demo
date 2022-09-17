@@ -67,10 +67,12 @@ fn file_to_bytes(path: &str) -> Result<Vec<u8>, AppError> {
     Ok(buf)
 }
 
-/// Create a jwt for the provided user.
-#[tracing::instrument(skip_all, fields(username = username))]
-pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
-    // Authenticate user
+/// Authenticate a user and return their claims.
+pub(crate) async fn create_claims(
+    conn: &DbPool,
+    username: &str,
+    password: &str,
+) -> Result<Claims, AppError> {
     let user_id = user_repository::authenticate(conn, username, password)
         .await?
         .ok_or(AppError::AuthenticationError)?;
@@ -78,6 +80,7 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
     // Fetch user roles
     let roles = user_repository::fetch_roles(conn, username).await?;
 
+    // Load config
     let config = crate::configuration::load_configuration()?;
 
     // Set claims
@@ -88,6 +91,18 @@ pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result
         exp: exp as usize,
         roles,
     };
+
+    Ok(claims)
+}
+
+/// Create a jwt for the provided user.
+#[tracing::instrument(skip_all, fields(username = username))]
+pub async fn encode_jwt(conn: &DbPool, username: &str, password: &str) -> Result<String, AppError> {
+    // Authenticate user
+    let claims = create_claims(conn, username, password).await?;
+
+    // Load config
+    let config = crate::configuration::load_configuration()?;
 
     // Read secret from config
     let private_key_path = config.security.jwt_private_key;

@@ -20,13 +20,17 @@ pub struct DigestFilterService<S> {
 }
 
 /// Extracts the request body.
-async fn get_request_body(req: &mut ServiceRequest) -> BytesMut {
+pub(crate) async fn clone_request_body(req: &mut ServiceRequest) -> BytesMut {
     let mut body = BytesMut::new();
     let mut stream = req.take_payload();
 
     while let Some(chunk) = stream.next().await {
         body.extend_from_slice(&chunk.unwrap());
     }
+
+    let (_, mut payload) = Payload::create(true);
+    payload.unread_data(body.clone().into());
+    req.set_payload(payload.into());
 
     body
 }
@@ -60,7 +64,7 @@ async fn validate_digest(req: &mut ServiceRequest) -> Result<(), DigestError> {
     tracing::info!("Validating digest");
 
     // Get request body
-    let body = get_request_body(req).await;
+    let body = clone_request_body(req).await;
 
     if !body.is_empty() {
         // Get digest header
@@ -77,11 +81,6 @@ async fn validate_digest(req: &mut ServiceRequest) -> Result<(), DigestError> {
             return Err(DigestError::DigestMismatch);
         }
     }
-
-    // Reset payload
-    let (_, mut payload) = Payload::create(true);
-    payload.unread_data(body.into());
-    req.set_payload(payload.into());
 
     Ok(())
 }

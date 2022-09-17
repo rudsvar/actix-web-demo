@@ -1,1 +1,1 @@
-DROP TABLE request_log;
+DROP TABLE requests;
