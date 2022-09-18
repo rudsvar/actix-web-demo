@@ -39,6 +39,26 @@
       ]
     }
   },
+  "2b727c061653fa5dd7007f4ca5ea3a24700ee3c218717f1d482daf2b80f791fb": {
+    "query": "\n        INSERT INTO requests (user_id, ip, request_method, request_uri, request_body, request_time, response_body, response_code, response_time_ms)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Timestamptz",
+          "Text",
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "537ed2affb3d33b6c56dcdcd96041c022ad2c4c8f65427f91a5c94e90bf50c31": {
     "query": "SELECT id, name, password as \"password: HashedPassword\", created_at FROM users",
     "describe": {
@@ -126,6 +146,23 @@
         false,
         false
       ]
+    }
+  },
+  "7d4cb12d847db7de21da6291f1f216564afed059d9873eed2603a0f1624d0792": {
+    "query": "\n        INSERT INTO audit_log (user_id, module, function, entity_id, input, output)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Int4",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
     }
   },
   "935443876aead18cf92ac1b3e9ea93f97a523a2e19f603844aef51a38692af04": {

@@ -67,6 +67,9 @@ jobs:
       - name: Set up database
         run: sqlx database setup
 
+      - name: Verify that sqlx-data.json is up to date
+        run: cargo sqlx prepare --check -- --lib
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
