@@ -16,6 +16,8 @@ run:
 run-release:
 	RUST_LOG=info,actix_web_demo=info,sqlx=off cargo run --release
 
+run-offline: build-offline run
+
 test:
 	RUST_LOG=info,tracing_actix_web=off,actix_web_demo=debug,sqlx=off cargo test
 
