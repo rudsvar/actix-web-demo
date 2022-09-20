@@ -27,10 +27,9 @@ async fn main() -> anyhow::Result<()> {
     actix_web_demo::infra::logging::init_logging(&configuration, db_pool.clone()).await?;
 
     // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await
-        .unwrap_or_else(|e| tracing::error!("Failed to run migrations: {}", e));
+    while let Err(e) = sqlx::migrate!("./migrations").run(&db_pool).await {
+        tracing::error!("Failed to run migrations: {}", e);
+    }
 
     let grpc_addr = format!(
         "{}:{}",
