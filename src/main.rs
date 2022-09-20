@@ -29,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
     // Run migrations
     while let Err(e) = sqlx::migrate!("./migrations").run(&db_pool).await {
         tracing::error!("Failed to run migrations: {}", e);
+        tokio::time::sleep(Duration::from_secs(30)).await;
     }
 
     let grpc_addr = format!(
