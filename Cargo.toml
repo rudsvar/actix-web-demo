@@ -20,7 +20,7 @@ axum = "0.5.15"
 # Tools
 itertools = "0.10.3"
 
-tokio = "1.20.1"
+tokio = "1.20.3"
 serde = "1.0.130"
 serde_json = "1.0.78"
 config = "0.13.1"
