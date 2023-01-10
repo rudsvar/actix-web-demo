@@ -105,7 +105,7 @@ pub struct LoggingSettings {
 pub fn load_configuration() -> Result<Settings, AppError> {
     let settings = config::Config::builder()
         .add_source(config::File::with_name("configuration"))
-        .add_source(config::Environment::with_prefix("app").separator("_"))
+        .add_source(config::Environment::with_prefix("app").separator("__"))
         .build()?
         .try_deserialize()?;
     Ok(settings)
