@@ -40,7 +40,7 @@ async-trait = "0.1.53"
 
 # Tracing
 tracing = { version = "0.1.36", features = ["log"] }
-tracing-subscriber = { version = "0.3.15", features = [
+tracing-subscriber = { version = "0.3.20", features = [
   "registry",
   "env-filter",
   "json",
@@ -59,10 +59,10 @@ opentelemetry = { version = "0.17.0", default-features = false, features = [
 
 # Security and validation
 bcrypt = "0.13.0"
-jsonwebtoken = "8.1.1"
+jsonwebtoken = "10.3.0"
 base64 = "0.13.0"
 validator = { version = "0.16.0", features = ["derive"] }
-openssl = "0.10.66"
+openssl = "0.10.78"
 
 # gRPC
 tonic = { version = "0.8.0", features = ["tls"] }
